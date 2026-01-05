@@ -15,18 +15,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableFooter,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  totalAmount?: number;
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-}: DataTableProps<TData, TValue>) {
+export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
+  const { columns, data } = props;
   const table = useReactTable({
     data,
     columns,
@@ -84,6 +84,23 @@ export function DataTable<TData, TValue>({
               </TableRow>
             )}
           </TableBody>
+          {/* Footer for Total */}
+          {typeof props.totalAmount === "number" && (
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={columns.length - 2}>
+                  Total (Current Month)
+                </TableCell>
+                <TableCell className="text-right font-bold">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  }).format(props.totalAmount)}
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+            </TableFooter>
+          )}
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">

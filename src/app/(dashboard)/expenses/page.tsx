@@ -1,25 +1,28 @@
-import { DataTable } from "@/components/expenses/data-table";
-import { columns } from "@/components/expenses/columns";
-import { getExpenses } from "@/actions/expenses";
+import { getExpenses, getExpenseTotal } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
 import { buildCategoryTree } from "@/lib/categories";
-import { createClient } from "@/lib/supabase/server";
 import { ExpenseForm } from "@/components/expenses/expense-form";
+import { ExpensesClient } from "@/components/expenses/expenses-client";
+import { MonthSelector } from "@/components/expenses/month-selector";
 
-export default async function ExpensesPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+interface ExpensesPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
 
-  if (!user) {
-    return null;
-  }
+// ...
+
+export default async function ExpensesPage({
+  searchParams,
+}: ExpensesPageProps) {
+  const params = await searchParams;
+  const month = params.month ? parseInt(params.month as string) : undefined;
+  const year = params.year ? parseInt(params.year as string) : undefined;
 
   // Parallel fetching
-  const [expensesResult, categoriesResult] = await Promise.all([
-    getExpenses(user.id),
+  const [expensesResult, categoriesResult, totalAmount] = await Promise.all([
+    getExpenses(1, 100, month, year), // Increased limit for now or need pagination metadata passed?
     getCategories(),
+    getExpenseTotal(month, year),
   ]);
 
   const expenses = expensesResult.data;
@@ -35,10 +38,17 @@ export default async function ExpensesPage() {
             View and manage your transaction history
           </p>
         </div>
-        <ExpenseForm categories={categoryTree} />
+        <div className="flex items-center gap-4">
+          <MonthSelector />
+          <ExpenseForm categories={categoryTree} />
+        </div>
       </div>
 
-      <DataTable columns={columns} data={expenses} />
+      <ExpensesClient
+        expenses={expenses}
+        categories={categories}
+        totalAmount={totalAmount}
+      />
     </div>
   );
 }

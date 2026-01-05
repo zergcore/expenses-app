@@ -2,6 +2,8 @@
 
 import { ColumnDef } from "@tanstack/react-table";
 import { Expense } from "@/actions/expenses";
+import { Category } from "@/lib/categories";
+import { ExpenseForm } from "@/components/expenses/expense-form";
 
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export const columns: ColumnDef<Expense>[] = [
+export const getColumns = (categories: Category[]): ColumnDef<Expense>[] => [
   {
     accessorKey: "date",
     header: "Date",
@@ -59,10 +61,20 @@ export const columns: ColumnDef<Expense>[] = [
       const amount = parseFloat(row.getValue("amount"));
       const currency = row.original.currency;
 
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: currency,
-      }).format(amount);
+      let formatted;
+      if (currency === "USDT") {
+        formatted = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        })
+          .format(amount)
+          .replace("$", "₮");
+      } else {
+        formatted = new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: currency,
+        }).format(amount);
+      }
 
       return <div className="text-right font-medium">{formatted}</div>;
     },
@@ -98,7 +110,12 @@ export const columns: ColumnDef<Expense>[] = [
             >
               Copy ID
             </DropdownMenuItem>
-            <DropdownMenuItem>Edit</DropdownMenuItem>
+            {/* Edit Action - Prevents default to allow Dialog to open if we nested triggers, 
+                 but ExpenseForm handles the Trigger itself. 
+                 Wait, ExpenseForm has a DialogTrigger. putting a DialogTrigger inside DropdownMenuContent is slightly complex in shadcn/radix due to focus management.
+                 Ideally: Selection of MenuItem opens the generic Dialog state controlled here.
+            */}
+            <ExpenseForm categories={categories} initialData={expense} />
             <DropdownMenuItem
               className="text-destructive"
               onClick={handleDelete}

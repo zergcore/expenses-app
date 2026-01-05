@@ -1,8 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getExpenseTotal, getExpenses } from "@/actions/expenses";
+import { getBudgets } from "@/actions/budgets";
+import { formatCurrency } from "@/lib/utils";
 import { requireUser } from "@/lib/auth/server";
 
 export default async function DashboardPage() {
   const user = await requireUser();
+
+  const [totalSpent, recentExpenses, budgets] = await Promise.all([
+    getExpenseTotal(),
+    getExpenses(1, 5),
+    getBudgets(),
+  ]);
+
+  // Calculate Budget Usage
+  const totalBudget = budgets.reduce((acc, b) => acc + b.amount, 0);
+  const totalBudgetSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
+  const budgetProgress =
+    totalBudget > 0 ? (totalBudgetSpent / totalBudget) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -20,7 +35,9 @@ export default async function DashboardPage() {
             <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$0.00</div>
+            <div className="text-2xl font-bold">
+              {formatCurrency(totalSpent)}
+            </div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -30,8 +47,13 @@ export default async function DashboardPage() {
             <CardTitle className="text-sm font-medium">Budget Used</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0%</div>
-            <p className="text-xs text-muted-foreground">Of monthly budget</p>
+            <div className="text-2xl font-bold">
+              {Math.round(budgetProgress)}%
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {formatCurrency(totalBudgetSpent)} of{" "}
+              {formatCurrency(totalBudget)}
+            </p>
           </CardContent>
         </Card>
 
@@ -58,16 +80,44 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Placeholder sections */}
+      {/* Recent Expenses & Categories */}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle>Recent Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              No expenses recorded yet. Add your first expense to get started.
-            </p>
+            {recentExpenses.data.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No expenses recorded yet. Add your first expense to get started.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {recentExpenses.data.map((expense) => (
+                  <div
+                    key={expense.id}
+                    className="flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl">
+                        {expense.category?.icon || "💰"}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {expense.description || "Uncategorized"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(expense.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="font-medium">
+                      {formatCurrency(expense.amount, expense.currency)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 

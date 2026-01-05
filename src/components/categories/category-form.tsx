@@ -24,6 +24,11 @@ import { createCategory, ActionState } from "@/actions/categories";
 import { Category } from "@/lib/categories";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const initialState: ActionState = {
   error: "",
@@ -35,6 +40,7 @@ interface CategoryFormProps {
 
 export function CategoryForm({ categories }: CategoryFormProps) {
   const [open, setOpen] = useState(false);
+  const [icon, setIcon] = useState("📁");
   const [state, formAction, isPending] = useActionState(
     createCategory,
     initialState
@@ -86,13 +92,56 @@ export function CategoryForm({ categories }: CategoryFormProps) {
               <Label htmlFor="icon" className="text-right">
                 Icon
               </Label>
-              <Input
-                id="icon"
-                name="icon"
-                placeholder="🍔"
-                className="col-span-3"
-                maxLength={2}
-              />
+              <div className="col-span-3">
+                <input type="hidden" name="icon" value={icon} />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <span className="mr-2 text-lg">{icon || "Choose"}</span>
+                      {icon ? "Change Icon" : "Select Icon"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64">
+                    <div className="grid grid-cols-5 gap-2">
+                      {[
+                        "🏠",
+                        "🍔",
+                        "🚗",
+                        "🛒",
+                        "💊",
+                        "🎓",
+                        "✈️",
+                        "👔",
+                        "🎁",
+                        "💡",
+                        "📶",
+                        "🎮",
+                        "🏋️",
+                        "🐾",
+                        "💰",
+                        "💸",
+                        "🏦",
+                        "💳",
+                        "🧾",
+                        "🔧",
+                      ].map((emoji) => (
+                        <Button
+                          key={emoji}
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-xl"
+                          onClick={() => setIcon(emoji)}
+                          type="button"
+                        >
+                          {emoji}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="color" className="text-right">

@@ -34,15 +34,21 @@ interface RawExpenseResponse {
 }
 
 export async function getExpenses(
-  userId: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  month?: number,
+  year?: number
 ): Promise<{ data: Expense[]; count: number }> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { data: [], count: 0 };
+
   const offset = (page - 1) * limit;
 
-  // Fetch expenses with category details
-  const { data, count, error } = await supabase
+  let query = supabase
     .from("expenses")
     .select(
       `
@@ -60,7 +66,24 @@ export async function getExpenses(
     `,
       { count: "exact" }
     )
-    .eq("user_id", userId)
+    .eq("user_id", user.id);
+
+  // Apply date filter if provided, otherwise default to "all time" or keep as is?
+  // User asked: "table... should show only the expenses of the current month"
+  // So if month/year are missing, we should default to current month?
+  // Let's implement strict filtering if provided, OR default to current month if specifically requested by user requirement.
+  // The requirement says: "table that is always open at the beginning should show only the expenses of the current month"
+
+  const targetYear = year ?? new Date().getFullYear();
+  const targetMonth = month ?? new Date().getMonth(); // 0-indexed
+
+  // Calculate start/end of the target month
+  const start = new Date(targetYear, targetMonth, 1).toISOString();
+  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+
+  query = query.gte("date", start).lte("date", end);
+
+  const { data, count, error } = await query
     .order("date", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -89,6 +112,44 @@ export async function getExpenses(
   }));
 
   return { data: expenses, count: count || 0 };
+}
+
+// Renamed to generic getExpenseTotal but kept old export name for now or refactor all usage?
+// Let's keep it clean: getExpenseTotal
+export async function getExpenseTotal(
+  month?: number,
+  year?: number
+): Promise<number> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return 0;
+
+  const now = new Date();
+  const targetYear = year ?? now.getFullYear();
+  const targetMonth = month ?? now.getMonth();
+
+  const start = new Date(targetYear, targetMonth, 1).toISOString();
+  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("amount, currency")
+    .eq("user_id", user.id)
+    .gte("date", start)
+    .lte("date", end);
+
+  if (error) {
+    console.error("Error calculating total:", error);
+    return 0;
+  }
+
+  // Calculate total (assuming USD for simplicity or 1:1 for now, as currency conversion is complex)
+  const total = (data || []).reduce((acc, curr) => acc + curr.amount, 0);
+
+  return total;
 }
 
 const expenseSchema = z.object({
@@ -154,6 +215,62 @@ export async function createExpense(
 
   revalidatePath("/expenses");
   revalidatePath("/"); // Dashboard summary might change
+  return { success: true };
+}
+
+export async function updateExpense(
+  prevState: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+
+  const rawData = {
+    amount: formData.get("amount"),
+    currency: formData.get("currency"),
+    date: formData.get("date"),
+    category_id:
+      formData.get("category_id") === "none"
+        ? null
+        : formData.get("category_id"),
+    description: formData.get("description"),
+  };
+
+  const validated = expenseSchema.safeParse(rawData);
+
+  if (!validated.success) {
+    return {
+      error: "Invalid input",
+      errors: validated.error.flatten().fieldErrors,
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  const { error } = await supabase
+    .from("expenses")
+    .update({
+      amount: validated.data.amount,
+      currency: validated.data.currency,
+      date: validated.data.date,
+      category_id: validated.data.category_id,
+      description: validated.data.description,
+    })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/expenses");
+  revalidatePath("/");
   return { success: true };
 }
 
