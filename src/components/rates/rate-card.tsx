@@ -18,7 +18,8 @@ export function RateCard({
   trend,
   change,
   description,
-}: RateCardProps) {
+  source,
+}: RateCardProps & { source?: string }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -31,17 +32,24 @@ export function RateCard({
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">{rate}</div>
-        {(change || description) && (
-          <p
-            className={cn("text-xs text-muted-foreground", {
-              "text-green-500": trend === "up",
-              "text-red-500": trend === "down",
-            })}
-          >
-            {change && <span className="mr-1">{change}</span>}
-            {description}
-          </p>
-        )}
+        <div className="mt-1 flex items-center justify-between">
+          {(change || description) && (
+            <p
+              className={cn("text-xs text-muted-foreground", {
+                "text-green-500": trend === "up",
+                "text-red-500": trend === "down",
+              })}
+            >
+              {change && <span className="mr-1">{change}</span>}
+              {description}
+            </p>
+          )}
+          {source && (
+            <span className="text-[10px] text-muted-foreground/50 border px-1 rounded bg-muted/20">
+              {source}
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
