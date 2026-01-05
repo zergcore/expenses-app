@@ -85,6 +85,21 @@ export function BudgetForm({ categories }: BudgetFormProps) {
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="currency" className="text-right">
+                Currency
+              </Label>
+              <Select name="currency" defaultValue="USD">
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="VES">VES (Bs.)</SelectItem>
+                  <SelectItem value="USDT">Tether (USDT)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
                 Limit
               </Label>

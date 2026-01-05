@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { endOfMonth, startOfMonth } from "date-fns";
 
 export type Budget = {
   id: string;
@@ -15,33 +15,16 @@ export type Budget = {
     icon: string | null;
     color: string | null;
   } | null;
+  currency: string; // 'USD', 'VES', 'USDT'
   spent: number; // Calculated field
   progress: number; // Calculated %
 };
-
-// Internal types for Supabase responses
-interface RawBudget {
-  id: string;
-  amount: number;
-  period: string;
-  category_id: string | null;
-  category: {
-    name: string;
-    icon: string | null;
-    color: string | null;
-  } | null;
-}
-
-interface RawExpense {
-  amount: number;
-  category_id: string | null;
-  currency: string;
-}
 
 const budgetSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   category_id: z.string().optional().nullable(),
   period: z.enum(["monthly"]).default("monthly"),
+  currency: z.enum(["USD", "VES", "USDT"]).default("USD"),
 });
 
 export type ActionState = {
@@ -67,6 +50,7 @@ export async function getBudgets(): Promise<Budget[]> {
       amount,
       period,
       category_id,
+      currency,
       category:categories (
         name,
         icon,
@@ -82,49 +66,59 @@ export async function getBudgets(): Promise<Budget[]> {
   }
 
   // 2. Fetch Expenses for Current Month to calculate execution
-  // Note: For a robust system, we might want to do this aggregation on the DB side (migration)
-  // or use a more specific query. For MVP with moderate data, this JS processing is okay.
-
   const now = new Date();
   const start = startOfMonth(now).toISOString();
   const end = endOfMonth(now).toISOString();
 
   // We need to know "spent" per category.
-  // Let's fetch all expenses for this user for this month.
-  // Optimization: only fetch amount and category_id
   const { data: expensesData, error: expensesError } = await supabase
     .from("expenses")
-    .select("amount, category_id, currency") // Currency conversion needed? Assuming USD for now or single currency.
+    .select("amount, category_id, currency")
     .eq("user_id", user.id)
     .gte("date", start)
     .lte("date", end);
 
   if (expensesError) {
     console.error("Error fetching budget expenses:", expensesError);
-    // don't fail, just show 0 spent
   }
 
-  const expenses: RawExpense[] = (expensesData as RawExpense[]) || [];
-  const rawBudgets: RawBudget[] = (budgetsData as unknown as RawBudget[]) || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const expenses = (expensesData as any[]) || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawBudgets = (budgetsData as any[]) || [];
 
   // 3. Map and Calculate
   const budgets: Budget[] = rawBudgets.map((b) => {
-    // Calculate spent for this budget's category.
-    // Logic: Sum expenses where expense.category_id === budget.category_id
-    // TODO: Handle subcategories? If I set a budget for "Food", should "Food > Groceries" count?
-    // For MVP Phase 1: Direct match only.
-    // Ideally we traverses the category tree, but let's start simple.
-
-    // Also, Handle "Global" budget (category_id is null) -> All expenses?
     let spent = 0;
+
+    // Filter expenses matching this budget's category (or all if global)
+    // AND matching this budget's currency (or converting? For now, exact match).
+    // If budget is USD, only sum USD expenses? Or convert VES to USD?
+    // Given the complexity of rates, let's start with EXACT CURRENCY MATCH.
+    // If user sets a USD budget, only USD expenses count against it.
+
+    // Note: The schema for budgets didn't explicitly have 'currency' in `getBudgets` select above?
+    // Wait, I need to fetch `currency` from budgets table too.
+    // I will add it to the select.
+    const budgetCurrency = b.currency || "USD"; // Default to USD if missing
 
     if (b.category_id) {
       spent = expenses
-        .filter((e) => e.category_id === b.category_id)
+        .filter((e) => e.category_id === b.category_id) // Match Category
+        // .filter((e) => e.currency === budgetCurrency) // Match Currency?
+        // Actually, many users want to see TOTAL value in a base currency.
+        // But the previous request was specific about "Budget Form should include Currency".
+        // This implies budgets are currency-specific.
+        // So I should sum only expenses of that currency.
+        // Or assume everything is converted to USD?
+        // Let's sum raw amounts of matching currency.
+        .filter((e) => e.currency === budgetCurrency)
         .reduce((acc, curr) => acc + curr.amount, 0);
     } else {
-      // Global budget (if applicable)
-      spent = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+      // Global budget (All categories)
+      spent = expenses
+        .filter((e) => e.currency === budgetCurrency)
+        .reduce((acc, curr) => acc + curr.amount, 0);
     }
 
     const progress = Math.min((spent / b.amount) * 100, 100);
@@ -137,6 +131,7 @@ export async function getBudgets(): Promise<Budget[]> {
       category: b.category,
       spent,
       progress,
+      currency: budgetCurrency,
     };
   });
 
@@ -156,6 +151,7 @@ export async function createBudget(
         ? null
         : formData.get("category_id"),
     period: "monthly",
+    currency: formData.get("currency") || "USD",
   };
 
   const validated = budgetSchema.safeParse(rawData);
@@ -175,16 +171,13 @@ export async function createBudget(
     return { error: "Unauthorized" };
   }
 
-  // Check if budget already exists for this category?
-  // User might want multiple? Let's assume one per category for now to prevent duplicates.
-  // This logic is better enforced on DB or checking here.
-
   const { error } = await supabase.from("budgets").insert({
     user_id: user.id,
     amount: validated.data.amount,
     category_id: validated.data.category_id,
     period: validated.data.period,
-    start_date: startOfMonth(new Date()).toISOString(), // Optional in schema?
+    currency: validated.data.currency,
+    start_date: startOfMonth(new Date()).toISOString(),
   });
 
   if (error) {

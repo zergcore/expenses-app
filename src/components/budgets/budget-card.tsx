@@ -28,19 +28,27 @@ export function BudgetCard({ budget }: BudgetCardProps) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {formatCurrency(budget.amount, "USD")}
+          {formatCurrency(budget.amount, budget.currency || "USD")}
         </div>
         <p className="text-xs text-muted-foreground mb-4">
           {isOverBudget ? "Over by " : "Left: "}
-          {formatCurrency(Math.abs(budget.amount - budget.spent), "USD")}
+          {formatCurrency(
+            Math.abs(budget.amount - budget.spent),
+            budget.currency || "USD"
+          )}
         </p>
 
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
             <span>{Math.round(budget.progress)}% used</span>
-            <span>{formatCurrency(budget.spent, "USD")}</span>
+            <span>
+              {formatCurrency(budget.spent, budget.currency || "USD")}
+            </span>
           </div>
-          <Progress value={budget.progress} className={progressColor} />
+          <Progress
+            value={budget.progress}
+            indicatorClassName={progressColor}
+          />
         </div>
       </CardContent>
     </Card>
