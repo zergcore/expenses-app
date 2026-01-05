@@ -1,17 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getExpenseTotal, getExpenses } from "@/actions/expenses";
+import {
+  getExpenseTotal,
+  getExpenses,
+  getSpendingByCategory,
+} from "@/actions/expenses";
 import { getBudgets } from "@/actions/budgets";
+import { getExchangeRates } from "@/actions/rates";
 import { formatCurrency } from "@/lib/utils";
 import { requireUser } from "@/lib/auth/server";
+import { SpendingByCategory } from "@/components/dashboard/spending-by-category";
 
 export default async function DashboardPage() {
   const user = await requireUser();
 
-  const [totalSpent, recentExpenses, budgets] = await Promise.all([
-    getExpenseTotal(),
-    getExpenses(1, 5),
-    getBudgets(),
-  ]);
+  const [totalSpent, recentExpenses, budgets, spendingByCategory, rates] =
+    await Promise.all([
+      getExpenseTotal(),
+      getExpenses(1, 5),
+      getBudgets(),
+      getSpendingByCategory(),
+      getExchangeRates(),
+    ]);
+
+  const usdRate = rates.find((r) => r.pair === "USD / VED");
+  const usdtRate = rates.find((r) => r.pair === "USDT / USD");
 
   // Calculate Budget Usage
   const totalBudget = budgets.reduce((acc, b) => acc + b.amount, 0);
@@ -64,7 +76,7 @@ export default async function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">--</div>
+            <div className="text-2xl font-bold">{usdRate?.rate || "--"}</div>
             <p className="text-xs text-muted-foreground">Bs. per USD</p>
           </CardContent>
         </Card>
@@ -74,8 +86,8 @@ export default async function DashboardPage() {
             <CardTitle className="text-sm font-medium">USDT Rate</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground">Bs. per USDT</p>
+            <div className="text-2xl font-bold">{usdtRate?.rate || "--"}</div>
+            <p className="text-xs text-muted-foreground">USD per USDT</p>
           </CardContent>
         </Card>
       </div>
@@ -121,16 +133,7 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Charts will appear here once you add expenses.
-            </p>
-          </CardContent>
-        </Card>
+        <SpendingByCategory data={spendingByCategory} />
       </div>
     </div>
   );

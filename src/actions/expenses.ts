@@ -3,6 +3,62 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { createNotification } from "./notifications";
+
+// Helper to check budget limits
+async function checkBudgetLimits(userId: string, categoryId: string | null) {
+  if (!categoryId) return; // General budget not implemented yet for specific check? Or check global?
+  // Let's check specific category budget first.
+
+  const supabase = await createClient();
+
+  // Get budget for this category
+  const { data: budget } = await supabase
+    .from("budgets")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("category_id", categoryId)
+    .single();
+
+  if (!budget) return;
+
+  // Calculate total spent for this category (current month) (re-using logic or simple query?)
+  // We need to query expenses again to be sure of current total.
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+
+  const { data: expenses } = await supabase
+    .from("expenses")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("category_id", categoryId)
+    .gte("date", start)
+    .lte("date", end);
+
+  const spent = (expenses || []).reduce((acc, curr) => acc + curr.amount, 0);
+  const percentage = (spent / budget.amount) * 100;
+
+  if (percentage >= 100) {
+    await createNotification(
+      userId,
+      "budget_alert",
+      "Budget Exceeded",
+      `You have exceeded your budget for this category. Spent: $${spent.toFixed(
+        2
+      )} / $${budget.amount}`
+    );
+  } else if (percentage >= 80) {
+    await createNotification(
+      userId,
+      "budget_alert",
+      "Approaching Limit",
+      `You have used ${Math.round(
+        percentage
+      )}% of your budget for this category.`
+    );
+  }
+}
 
 export type Expense = {
   id: string;
@@ -152,6 +208,107 @@ export async function getExpenseTotal(
   return total;
 }
 
+export type CategorySpending = {
+  category: {
+    name: string;
+    icon: string | null;
+    color: string | null;
+  } | null;
+  amount: number;
+  percentage: number;
+};
+
+export async function getSpendingByCategory(
+  month?: number,
+  year?: number
+): Promise<CategorySpending[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  const now = new Date();
+  const targetYear = year ?? now.getFullYear();
+  const targetMonth = month ?? now.getMonth();
+
+  const start = new Date(targetYear, targetMonth, 1).toISOString();
+  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+
+  // Fetch all expenses for the period with category details
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(
+      `
+      amount,
+      category:categories (
+        name,
+        icon,
+        color
+      )
+    `
+    )
+    .eq("user_id", user.id)
+    .gte("date", start)
+    .lte("date", end);
+
+  if (error) {
+    console.error("Error fetching spending by category:", error);
+    return [];
+  }
+
+  // Type the raw response explicitly to rely on single object relation
+  type RawSpending = {
+    amount: number;
+    category: {
+      name: string;
+      icon: string | null;
+      color: string | null;
+    } | null;
+  };
+
+  const expenses = (data as unknown as RawSpending[]) || [];
+  const total = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+
+  if (total === 0) return [];
+
+  // Group by category name (or ID if we had it easily available in this shape, but name is fine for display)
+  // Actually, we should group by category object contents.
+  type GroupedCategory = {
+    category: {
+      name: string;
+      icon: string | null;
+      color: string | null;
+    } | null;
+    amount: number;
+  };
+
+  const grouped = expenses.reduce<Record<string, GroupedCategory>>(
+    (acc, curr) => {
+      const key = curr.category?.name || "Uncategorized";
+      if (!acc[key]) {
+        acc[key] = {
+          category: curr.category,
+          amount: 0,
+        };
+      }
+      acc[key].amount += curr.amount;
+      return acc;
+    },
+    {}
+  );
+
+  // Convert to array and calculate percentage
+  return Object.values(grouped)
+    .map((item) => ({
+      category: item.category,
+      amount: item.amount,
+      percentage: (item.amount / total) * 100,
+    }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 const expenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   currency: z.enum(["USD", "VES", "USDT"]),
@@ -213,6 +370,13 @@ export async function createExpense(
     return { error: error.message };
   }
 
+  // Check budget limits asynchronously (fire and forget pattern or await?)
+  // Await to ensure it runs, but don't block UI strictly if it fails?
+  // Server actions must return, so await is safer.
+  if (validated.data.category_id) {
+    await checkBudgetLimits(user.id, validated.data.category_id);
+  }
+
   revalidatePath("/expenses");
   revalidatePath("/"); // Dashboard summary might change
   return { success: true };
@@ -267,6 +431,10 @@ export async function updateExpense(
 
   if (error) {
     return { error: error.message };
+  }
+
+  if (validated.data.category_id) {
+    await checkBudgetLimits(user.id, validated.data.category_id);
   }
 
   revalidatePath("/expenses");
