@@ -1,0 +1,15 @@
+{
+  "Dashboard": {
+    "title": "Bienvenido de nuevo",
+    "description": "Aquí tienes un resumen de tus finanzas.",
+    "totalSpent": "Total Gastado",
+    "budgetUsed": "Presupuesto Usado",
+    "recentExpenses": "Gastos Recientes",
+    "thisMonth": "Este mes",
+    "noExpenses": "No hay gastos registrados aún. Agrega tu primer gasto para comenzar."
+  },
+  "Auth": {
+    "login": "Iniciar sesión",
+    "logout": "Cerrar sesión"
+  }
+}

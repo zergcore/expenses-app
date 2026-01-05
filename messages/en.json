@@ -1,0 +1,15 @@
+{
+  "Dashboard": {
+    "title": "Welcome back",
+    "description": "Here's an overview of your finances.",
+    "totalSpent": "Total Spent",
+    "budgetUsed": "Budget Used",
+    "recentExpenses": "Recent Expenses",
+    "thisMonth": "This month",
+    "noExpenses": "No expenses recorded yet. Add your first expense to get started."
+  },
+  "Auth": {
+    "login": "Log in",
+    "logout": "Log out"
+  }
+}

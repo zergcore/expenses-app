@@ -9,9 +9,11 @@ import { getExchangeRates } from "@/actions/rates";
 import { formatCurrency } from "@/lib/utils";
 import { requireUser } from "@/lib/auth/server";
 import { SpendingByCategory } from "@/components/dashboard/spending-by-category";
+import { getTranslations } from "next-intl/server";
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  const t = await getTranslations("Dashboard");
 
   const [totalSpent, recentExpenses, budgets, spendingByCategory, rates] =
     await Promise.all([
@@ -36,7 +38,8 @@ export default async function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back{user?.email ? `, ${user.email.split("@")[0]}` : ""}
+          {t("title")}
+          {user?.email ? `, ${user.email.split("@")[0]}` : ""}
         </p>
       </div>
 
@@ -44,19 +47,23 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("totalSpent")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {formatCurrency(totalSpent)}
             </div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Budget Used</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("budgetUsed")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -96,13 +103,11 @@ export default async function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Recent Expenses</CardTitle>
+            <CardTitle>{t("recentExpenses")}</CardTitle>
           </CardHeader>
           <CardContent>
             {recentExpenses.data.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No expenses recorded yet. Add your first expense to get started.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("noExpenses")}</p>
             ) : (
               <div className="space-y-4">
                 {recentExpenses.data.map((expense) => (
