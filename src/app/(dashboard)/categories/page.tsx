@@ -1,7 +1,7 @@
 import { CategoryList } from "@/components/categories/category-list";
 import { CategoryForm } from "@/components/categories/category-form";
 import { buildCategoryTree } from "@/lib/categories";
-import { getCategories } from "@/lib/api/categories";
+import { getCategories } from "@/actions/categories";
 
 export default async function CategoriesPage() {
   // Use Service Layer for data fetching

@@ -20,10 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  createCategory,
-  ActionState,
-} from "@/app/(dashboard)/categories/actions";
+import { createCategory, ActionState } from "@/actions/categories";
 import { Category } from "@/lib/categories";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -45,8 +42,9 @@ export function CategoryForm({ categories }: CategoryFormProps) {
 
   useEffect(() => {
     if (state.success) {
-      setOpen(false);
+      const t = setTimeout(() => setOpen(false), 0);
       toast.success("Category created successfully");
+      return () => clearTimeout(t);
     } else if (state.error) {
       toast.error(state.error);
     }

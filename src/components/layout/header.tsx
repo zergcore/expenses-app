@@ -1,8 +1,7 @@
 "use client";
 
 import { User } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,19 +14,16 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { Sidebar } from "./sidebar";
+import { signout } from "@/actions/auth";
+import Link from "next/link";
 
 interface HeaderProps {
   user: User;
 }
 
 export function Header({ user }: HeaderProps) {
-  const router = useRouter();
-  const supabase = createClient();
-
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/login");
-    router.refresh();
+    await signout();
   };
 
   const initials = user.email ? user.email.slice(0, 2).toUpperCase() : "U";
@@ -72,22 +68,22 @@ export function Header({ user }: HeaderProps) {
           </div>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild>
-            <a
+            <Link
               href="/settings"
               className="flex items-center gap-2 cursor-pointer"
             >
               <UserIcon className="h-4 w-4" />
               Profile
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <a
+            <Link
               href="/settings"
               className="flex items-center gap-2 cursor-pointer"
             >
               <Settings className="h-4 w-4" />
               Settings
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

@@ -19,9 +19,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Category } from "@/lib/categories";
-import { useState, useTransition } from "react";
+import { useState, useTransition, Fragment } from "react";
 import { cn } from "@/lib/utils";
-import { deleteCategory } from "@/app/(dashboard)/categories/actions";
+import { deleteCategory } from "@/actions/categories";
 import { toast } from "sonner";
 
 interface CategoryListProps {
@@ -65,8 +65,8 @@ export function CategoryList({ categories }: CategoryListProps) {
     const isExpanded = expanded[category.id];
 
     return (
-      <>
-        <TableRow key={category.id} className="group">
+      <Fragment key={category.id}>
+        <TableRow className="group">
           <TableCell className="font-medium">
             <div
               className="flex items-center gap-2"
@@ -138,7 +138,7 @@ export function CategoryList({ categories }: CategoryListProps) {
           category.subcategories?.map((sub: Category) =>
             renderRow(sub, level + 1)
           )}
-      </>
+      </Fragment>
     );
   };
 
