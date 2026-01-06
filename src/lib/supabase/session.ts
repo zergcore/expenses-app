@@ -20,7 +20,7 @@ export async function updateSession(
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
@@ -45,6 +45,11 @@ export async function updateSession(
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
+    !request.nextUrl.pathname.startsWith("/en/login") &&
+    !request.nextUrl.pathname.startsWith("/es/login") &&
+    !request.nextUrl.pathname.startsWith("/register") &&
+    !request.nextUrl.pathname.startsWith("/en/register") &&
+    !request.nextUrl.pathname.startsWith("/es/register") &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {
     // no user, potentially respond by redirecting the user to the login page
