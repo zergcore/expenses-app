@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -73,6 +74,14 @@ export default function LoginPage() {
             process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
           }/auth/callback`}
         />
+        <div className="mt-4 text-center text-sm">
+          <Link
+            href="/forgot-password"
+            className="text-muted-foreground hover:text-primary underline underline-offset-4"
+          >
+            Forgot your password?
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

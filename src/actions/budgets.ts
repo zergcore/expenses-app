@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { endOfMonth, startOfMonth } from "date-fns";
+import { getExchangeRates } from "@/actions/rates";
 
 export type Budget = {
   id: string;
@@ -41,11 +42,12 @@ export async function getBudgets(): Promise<Budget[]> {
 
   if (!user) return [];
 
-  // 1. Fetch Budgets
-  const { data: budgetsData, error: budgetsError } = await supabase
-    .from("budgets")
-    .select(
-      `
+  // 1. Fetch Budgets & Rates in parallel
+  const [budgetsRes, rates] = await Promise.all([
+    supabase
+      .from("budgets")
+      .select(
+        `
       id,
       amount,
       period,
@@ -57,20 +59,64 @@ export async function getBudgets(): Promise<Budget[]> {
         color
       )
     `
-    )
-    .eq("user_id", user.id);
+      )
+      .eq("user_id", user.id),
+    getExchangeRates(),
+  ]);
 
-  if (budgetsError) {
-    console.error("Error fetching budgets:", budgetsError);
+  if (budgetsRes.error) {
+    console.error("Error fetching budgets:", budgetsRes.error);
     throw new Error("Failed to fetch budgets");
   }
+
+  // Helper to get rate value
+  const getRateValue = (pair: string): number => {
+    const r = rates.find((rate) => rate.pair === pair);
+    return r ? r.value : 0;
+  };
+
+  const usdToVes = getRateValue("USD / VED");
+  const usdtToVes = getRateValue("USDT / USD"); // Actually USDT -> VES rate in our modified action
+  // Note: "USDT / USD" relies on the `value` field which we set to the VES price in rates.ts
+  // Wait, let's verify `rates.ts` logic.
+  // In `rates.ts`:
+  // pair: "USDT / USD", value: usdtVes (which is Bs per USDT from Binance)
+  // pair: "USD / VED", value: usdVes (which is Bs per USD from BCV)
+
+  const convertToBudget = (
+    amount: number,
+    from: string,
+    to: string
+  ): number => {
+    if (from === to) return amount;
+
+    if (to === "VES" || to === "VED") {
+      if (from === "USD") return amount * usdToVes;
+      if (from === "USDT") return amount * usdtToVes;
+    }
+
+    if (to === "USD") {
+      if (from === "VES" || from === "VED")
+        return usdToVes > 0 ? amount / usdToVes : 0;
+      if (from === "USDT")
+        return usdToVes > 0 ? (amount * usdtToVes) / usdToVes : amount;
+    }
+
+    if (to === "USDT") {
+      if (from === "VES" || from === "VED")
+        return usdtToVes > 0 ? amount / usdtToVes : 0;
+      if (from === "USD")
+        return usdtToVes > 0 ? (amount * usdToVes) / usdtToVes : amount;
+    }
+
+    return amount; // Fallback
+  };
 
   // 2. Fetch Expenses for Current Month to calculate execution
   const now = new Date();
   const start = startOfMonth(now).toISOString();
   const end = endOfMonth(now).toISOString();
 
-  // We need to know "spent" per category.
   const { data: expensesData, error: expensesError } = await supabase
     .from("expenses")
     .select("amount, category_id, currency")
@@ -85,41 +131,27 @@ export async function getBudgets(): Promise<Budget[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const expenses = (expensesData as any[]) || [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawBudgets = (budgetsData as any[]) || [];
+  const rawBudgets = (budgetsRes.data as any[]) || [];
 
   // 3. Map and Calculate
   const budgets: Budget[] = rawBudgets.map((b) => {
     let spent = 0;
+    const budgetCurrency = b.currency || "USD";
 
-    // Filter expenses matching this budget's category (or all if global)
-    // AND matching this budget's currency (or converting? For now, exact match).
-    // If budget is USD, only sum USD expenses? Or convert VES to USD?
-    // Given the complexity of rates, let's start with EXACT CURRENCY MATCH.
-    // If user sets a USD budget, only USD expenses count against it.
+    // Filter relevant expenses strictly by category?
+    const relevantExpenses = b.category_id
+      ? expenses.filter((e) => e.category_id === b.category_id)
+      : expenses;
 
-    // Note: The schema for budgets didn't explicitly have 'currency' in `getBudgets` select above?
-    // Wait, I need to fetch `currency` from budgets table too.
-    // I will add it to the select.
-    const budgetCurrency = b.currency || "USD"; // Default to USD if missing
-
-    if (b.category_id) {
-      spent = expenses
-        .filter((e) => e.category_id === b.category_id) // Match Category
-        // .filter((e) => e.currency === budgetCurrency) // Match Currency?
-        // Actually, many users want to see TOTAL value in a base currency.
-        // But the previous request was specific about "Budget Form should include Currency".
-        // This implies budgets are currency-specific.
-        // So I should sum only expenses of that currency.
-        // Or assume everything is converted to USD?
-        // Let's sum raw amounts of matching currency.
-        .filter((e) => e.currency === budgetCurrency)
-        .reduce((acc, curr) => acc + curr.amount, 0);
-    } else {
-      // Global budget (All categories)
-      spent = expenses
-        .filter((e) => e.currency === budgetCurrency)
-        .reduce((acc, curr) => acc + curr.amount, 0);
-    }
+    // Sum converted amounts
+    spent = relevantExpenses.reduce((acc, curr) => {
+      const converted = convertToBudget(
+        curr.amount,
+        curr.currency || "USD",
+        budgetCurrency
+      );
+      return acc + converted;
+    }, 0);
 
     const progress = Math.min((spent / b.amount) * 100, 100);
 

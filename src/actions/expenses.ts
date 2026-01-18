@@ -379,6 +379,7 @@ export async function createExpense(
 
   revalidatePath("/expenses");
   revalidatePath("/"); // Dashboard summary might change
+  revalidatePath("/budgets");
   return { success: true };
 }
 
@@ -439,6 +440,7 @@ export async function updateExpense(
 
   revalidatePath("/expenses");
   revalidatePath("/");
+  revalidatePath("/budgets");
   return { success: true };
 }
 
@@ -461,4 +463,5 @@ export async function deleteExpense(id: string) {
   if (error) throw error;
   revalidatePath("/expenses");
   revalidatePath("/");
+  revalidatePath("/budgets");
 }

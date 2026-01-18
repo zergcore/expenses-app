@@ -249,7 +249,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
   const usdtVes = await getVal("USDT_VES", "Binance", binanceData);
   if (usdtVes > 0) {
     results.push({
-      pair: "USDT / VES",
+      pair: "USDT / USD",
       rate: `Bs. ${usdtVes.toFixed(2)}`,
       trend: "flat",
       change: "0.0%",
@@ -263,7 +263,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
   const usdVes = await getVal("USD_VES", "BCV", bcvData?.usd);
   if (usdVes > 0) {
     results.push({
-      pair: "USD / VES",
+      pair: "USD / VED",
       rate: `Bs. ${usdVes.toFixed(2)}`,
       trend: "flat",
       change: "0.0%",
@@ -277,7 +277,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
   const eurVes = await getVal("EUR_VES", "BCV", bcvData?.eur);
   if (eurVes > 0) {
     results.push({
-      pair: "EUR / VES",
+      pair: "EUR / VED",
       rate: `Bs. ${eurVes.toFixed(2)}`,
       trend: "flat",
       change: "0.0%",

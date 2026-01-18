@@ -21,16 +21,31 @@ import { toast } from "sonner";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
+import { Input } from "@/components/ui/input";
+import { changePassword } from "@/actions/auth";
+import { useActionState } from "react";
+
 export function SettingsForm() {
   const { theme, setTheme } = useTheme();
-  // Hydration fix for next-themes
   const [mounted, setMounted] = useState(false);
+  const [passwordState, passwordAction, isPasswordPending] = useActionState(
+    changePassword,
+    {}
+  );
 
   useEffect(() => {
     // Use setTimeout to avoid synchronous state update warning during effect
     const timer = setTimeout(() => setMounted(true), 0);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (passwordState?.success) {
+      toast.success("Password updated successfully");
+    } else if (passwordState?.error) {
+      toast.error(passwordState.error);
+    }
+  }, [passwordState]);
 
   const handleSave = () => {
     toast.success("Settings saved successfully");
@@ -89,8 +104,33 @@ export function SettingsForm() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Security</CardTitle>
+          <CardDescription>Update your account password.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={passwordAction} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="password">New Password</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                minLength={6}
+                placeholder="••••••••"
+              />
+            </div>
+            <Button type="submit" disabled={isPasswordPending}>
+              {isPasswordPending ? "Updating..." : "Update Password"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-end">
-        <Button onClick={handleSave}>Save Changes</Button>
+        <Button onClick={handleSave}>Save Preference Changes</Button>
       </div>
     </div>
   );
