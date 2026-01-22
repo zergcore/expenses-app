@@ -45,8 +45,8 @@ async function checkBudgetLimits(userId: string, categoryId: string | null) {
       "budget_alert",
       "Budget Exceeded",
       `You have exceeded your budget for this category. Spent: $${spent.toFixed(
-        2
-      )} / $${budget.amount}`
+        2,
+      )} / $${budget.amount}`,
     );
   } else if (percentage >= 80) {
     await createNotification(
@@ -54,8 +54,8 @@ async function checkBudgetLimits(userId: string, categoryId: string | null) {
       "budget_alert",
       "Approaching Limit",
       `You have used ${Math.round(
-        percentage
-      )}% of your budget for this category.`
+        percentage,
+      )}% of your budget for this category.`,
     );
   }
 }
@@ -93,7 +93,7 @@ export async function getExpenses(
   page: number = 1,
   limit: number = 10,
   month?: number,
-  year?: number
+  year?: number,
 ): Promise<{ data: Expense[]; count: number }> {
   const supabase = await createClient();
   const {
@@ -120,15 +120,9 @@ export async function getExpenses(
         color
       )
     `,
-      { count: "exact" }
+      { count: "exact" },
     )
     .eq("user_id", user.id);
-
-  // Apply date filter if provided, otherwise default to "all time" or keep as is?
-  // User asked: "table... should show only the expenses of the current month"
-  // So if month/year are missing, we should default to current month?
-  // Let's implement strict filtering if provided, OR default to current month if specifically requested by user requirement.
-  // The requirement says: "table that is always open at the beginning should show only the expenses of the current month"
 
   const targetYear = year ?? new Date().getFullYear();
   const targetMonth = month ?? new Date().getMonth(); // 0-indexed
@@ -174,7 +168,7 @@ export async function getExpenses(
 // Let's keep it clean: getExpenseTotal
 export async function getExpenseTotal(
   month?: number,
-  year?: number
+  year?: number,
 ): Promise<number> {
   const supabase = await createClient();
   const {
@@ -220,7 +214,7 @@ export type CategorySpending = {
 
 export async function getSpendingByCategory(
   month?: number,
-  year?: number
+  year?: number,
 ): Promise<CategorySpending[]> {
   const supabase = await createClient();
   const {
@@ -247,7 +241,7 @@ export async function getSpendingByCategory(
         icon,
         color
       )
-    `
+    `,
     )
     .eq("user_id", user.id)
     .gte("date", start)
@@ -296,7 +290,7 @@ export async function getSpendingByCategory(
       acc[key].amount += curr.amount;
       return acc;
     },
-    {}
+    {},
   );
 
   // Convert to array and calculate percentage
@@ -325,7 +319,7 @@ export type ActionState = {
 
 export async function createExpense(
   prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
 
@@ -385,7 +379,7 @@ export async function createExpense(
 
 export async function updateExpense(
   prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
   const id = formData.get("id") as string;

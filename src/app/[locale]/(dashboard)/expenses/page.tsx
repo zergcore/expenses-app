@@ -1,15 +1,15 @@
 import { getExpenses, getExpenseTotal } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
+import { getBudgets } from "@/actions/budgets";
 import { buildCategoryTree } from "@/lib/categories";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { ExpensesClient } from "@/components/expenses/expenses-client";
 import { MonthSelector } from "@/components/expenses/month-selector";
+import { BudgetExpenseChart } from "@/components/expenses/budget-expense-chart";
 
 interface ExpensesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
-
-// ...
 
 export default async function ExpensesPage({
   searchParams,
@@ -19,15 +19,20 @@ export default async function ExpensesPage({
   const year = params.year ? parseInt(params.year as string) : undefined;
 
   // Parallel fetching
-  const [expensesResult, categoriesResult, totalAmount] = await Promise.all([
-    getExpenses(1, 100, month, year), // Increased limit for now or need pagination metadata passed?
-    getCategories(),
-    getExpenseTotal(month, year),
-  ]);
+  const [expensesResult, categoriesResult, totalAmount, budgets] =
+    await Promise.all([
+      getExpenses(1, 100, month, year),
+      getCategories(),
+      getExpenseTotal(month, year),
+      getBudgets(),
+    ]);
 
   const expenses = expensesResult.data;
   const categories = categoriesResult;
   const categoryTree = buildCategoryTree(categories);
+
+  const totalBudget = budgets.reduce((acc, b) => acc + b.amount, 0);
+  const totalBudgetSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
 
   return (
     <div className="space-y-6">
@@ -43,6 +48,18 @@ export default async function ExpensesPage({
           <ExpenseForm categories={categoryTree} />
         </div>
       </div>
+
+      {/* Budget vs Expenses Chart */}
+      {totalBudget > 0 && (
+        <div className="max-w-md">
+          <BudgetExpenseChart
+            totalBudget={totalBudget}
+            budgetSpent={totalBudgetSpent}
+            totalExpenses={totalAmount}
+            currency="USD"
+          />
+        </div>
+      )}
 
       <ExpensesClient
         expenses={expenses}
