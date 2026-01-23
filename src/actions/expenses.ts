@@ -459,3 +459,107 @@ export async function deleteExpense(id: string) {
   revalidatePath("/");
   revalidatePath("/budgets");
 }
+
+export async function getAllExpensesForExport(
+  month?: number,
+  year?: number,
+): Promise<
+  {
+    date: string;
+    category: string;
+    description: string;
+    amount: number;
+    currency: string;
+    budget_name: string;
+    budget_amount: number | string;
+    budget_currency: string;
+  }[]
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
+  // Re-use fetching logic somewhat or just fetch fresh
+  const targetYear = year ?? new Date().getFullYear();
+  const targetMonth = month ?? new Date().getMonth();
+
+  const start = new Date(targetYear, targetMonth, 1).toISOString();
+  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+
+  // 1. Fetch Expenses
+  const { data: expensesData, error } = await supabase
+    .from("expenses")
+    .select(
+      `
+      amount,
+      currency,
+      description,
+      date,
+      category_id,
+      category:categories (
+        name,
+        icon,
+        color
+      )
+    `,
+    )
+    .eq("user_id", user.id)
+    .gte("date", start)
+    .lte("date", end)
+    .order("date", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching expenses for export:", error);
+    return [];
+  }
+
+  // 2. Fetch Budgets with Category Name
+  const { data: budgetsData } = await supabase
+    .from("budgets")
+    .select(
+      `
+      amount, 
+      currency, 
+      category_id,
+      category:categories (
+        name
+      )
+    `,
+    )
+    .eq("user_id", user.id);
+
+  // Type assertion
+  type RawBudget = {
+    amount: number;
+    currency: string;
+    category_id: string | null;
+    category: { name: string } | null;
+  };
+  const budgets = (budgetsData as unknown as RawBudget[]) || [];
+
+  // Helper to find budget
+  const findBudget = (categoryId: string | null) => {
+    return budgets.find((b) => b.category_id === categoryId);
+  };
+
+  // 3. Map to flat structure
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (expensesData as any[]).map((expense) => {
+    const budget = findBudget(expense.category_id);
+    return {
+      date: expense.date,
+      category: expense.category?.name || "Uncategorized",
+      description: expense.description || "",
+      amount: expense.amount,
+      currency: expense.currency || "USD",
+      budget_name: budget
+        ? budget.category?.name || "Global Budget"
+        : "No Budget",
+      budget_amount: budget ? budget.amount : "N/A",
+      budget_currency: budget ? budget.currency : "",
+    };
+  });
+}
