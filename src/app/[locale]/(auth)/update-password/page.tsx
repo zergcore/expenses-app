@@ -55,46 +55,44 @@ export default function UpdatePasswordPage() {
   if (!mounted) return null;
 
   return (
-    <div className="flex h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
-          <CardDescription>Enter your new password below.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Auth
-            supabaseClient={supabase}
-            view="update_password"
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: "var(--primary)",
-                    brandAccent: "var(--primary)",
-                    inputBackground: "transparent",
-                    inputText: "var(--foreground)",
-                    inputBorder: "var(--border)",
-                    inputLabelText: "var(--foreground)",
-                  },
-                  radii: {
-                    borderRadiusButton: "var(--radius)",
-                    inputBorderRadius: "var(--radius)",
-                  },
+    <Card className="w-full max-w-sm">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
+        <CardDescription>Enter your new password below.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Auth
+          supabaseClient={supabase}
+          view="update_password"
+          appearance={{
+            theme: ThemeSupa,
+            variables: {
+              default: {
+                colors: {
+                  brand: "var(--primary)",
+                  brandAccent: "var(--primary)",
+                  inputBackground: "transparent",
+                  inputText: "var(--foreground)",
+                  inputBorder: "var(--border)",
+                  inputLabelText: "var(--foreground)",
+                },
+                radii: {
+                  borderRadiusButton: "var(--radius)",
+                  inputBorderRadius: "var(--radius)",
                 },
               },
-              className: {
-                button:
-                  "bg-primary text-primary-foreground hover:bg-primary/90 w-full",
-                input: "bg-background",
-                label: "text-foreground",
-              },
-            }}
-            providers={[]}
-            showLinks={false}
-          />
-        </CardContent>
-      </Card>
-    </div>
+            },
+            className: {
+              button:
+                "bg-primary text-primary-foreground hover:bg-primary/90 w-full",
+              input: "bg-background",
+              label: "text-foreground",
+            },
+          }}
+          providers={[]}
+          showLinks={false}
+        />
+      </CardContent>
+    </Card>
   );
 }
