@@ -1,28 +1,23 @@
-"use client";
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { formatCurrency } from "@/lib/utils";
-import type { CategorySpending } from "@/actions/expenses";
+import { getSpendingByCategory } from "@/actions/expenses";
 
-interface SpendingByCategoryProps {
-  data: CategorySpending[];
-}
-
-export function SpendingByCategory({ data }: SpendingByCategoryProps) {
+export async function SpendingByCategory() {
+  const spendingByCategory = await getSpendingByCategory();
   return (
     <Card className="col-span-1">
       <CardHeader>
         <CardTitle>Spending by Category</CardTitle>
       </CardHeader>
       <CardContent>
-        {data.length === 0 ? (
+        {spendingByCategory.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No expenses recorded for this period.
           </p>
         ) : (
           <div className="space-y-4">
-            {data.map((item, index) => (
+            {spendingByCategory.map((item, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">

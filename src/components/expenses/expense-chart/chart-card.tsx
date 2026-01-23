@@ -12,24 +12,18 @@ import {
 import { chartConfig, COLORS } from "@/lib/constants";
 import { Fragment } from "react/jsx-runtime";
 import { Label, Pie, PieChart } from "recharts";
+import { useExpenseChart } from "./expense-chart-context";
 
-interface ChartCardProps {
-  isOverBudget: boolean;
-  percentage: number;
-  totalBudget: number;
-  overBudget: number;
-  budgetSpent: number;
-  remaining: number;
-}
+export const ChartCard = () => {
+  const {
+    isOverBudget,
+    percentage,
+    totalBudget,
+    overBudget,
+    budgetSpent,
+    remaining,
+  } = useExpenseChart();
 
-export const ChartCard = ({
-  isOverBudget,
-  percentage,
-  totalBudget,
-  overBudget,
-  budgetSpent,
-  remaining,
-}: ChartCardProps) => {
   const chartData = isOverBudget
     ? [
         { name: "spent", value: totalBudget, fill: COLORS.spent },

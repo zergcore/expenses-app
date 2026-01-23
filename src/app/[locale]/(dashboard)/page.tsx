@@ -1,28 +1,22 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  getExpenseTotal,
-  getExpenses,
-  getSpendingByCategory,
-} from "@/actions/expenses";
+import { getExpenseTotal } from "@/actions/expenses";
 import { getBudgets } from "@/actions/budgets";
 import { getExchangeRates } from "@/actions/rates";
 import { formatCurrency } from "@/lib/utils";
 import { requireUser } from "@/lib/auth/server";
 import { SpendingByCategory } from "@/components/dashboard/spending-by-category";
 import { getTranslations } from "next-intl/server";
+import { SmallCard } from "@/components/dashboard/small-card";
+import { RecentExpenses } from "@/components/dashboard/recent-expenses";
 
 export default async function DashboardPage() {
   const user = await requireUser();
   const t = await getTranslations("Dashboard");
 
-  const [totalSpent, recentExpenses, budgets, spendingByCategory, rates] =
-    await Promise.all([
-      getExpenseTotal(),
-      getExpenses(1, 5),
-      getBudgets(),
-      getSpendingByCategory(),
-      getExchangeRates(),
-    ]);
+  const [totalSpent, budgets, rates] = await Promise.all([
+    getExpenseTotal(),
+    getBudgets(),
+    getExchangeRates(),
+  ]);
 
   const usdRate = rates.find((r) => r.pair === "USD / VED");
   const usdtRate = rates.find((r) => r.pair === "USDT / USD");
@@ -45,100 +39,32 @@ export default async function DashboardPage() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("totalSpent")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalSpent)}
-            </div>
-            <p className="text-xs text-muted-foreground">{t("thisMonth")}</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t("budgetUsed")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.round(budgetProgress)}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {formatCurrency(totalBudgetSpent)} of{" "}
-              {formatCurrency(totalBudget)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              USD Rate (BCV)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{usdRate?.rate || "--"}</div>
-            <p className="text-xs text-muted-foreground">Bs. per USD</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">USDT Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{usdtRate?.rate || "--"}</div>
-            <p className="text-xs text-muted-foreground">USD per USDT</p>
-          </CardContent>
-        </Card>
+        <SmallCard
+          title={t("totalSpent")}
+          value={formatCurrency(totalSpent)}
+          description={t("thisMonth")}
+        />
+        <SmallCard
+          title={t("budgetUsed")}
+          value={`${Math.round(budgetProgress).toString()}%`}
+          description={t("thisMonth")}
+        />
+        <SmallCard
+          title={t("usdRate")}
+          value={usdRate?.rate || "--"}
+          description={t("bsPerUsd")}
+        />
+        <SmallCard
+          title={t("usdtRate")}
+          value={usdtRate?.rate || "--"}
+          description={t("bsPerUsdt")}
+        />
       </div>
 
       {/* Recent Expenses & Categories */}
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle>{t("recentExpenses")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentExpenses.data.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("noExpenses")}</p>
-            ) : (
-              <div className="space-y-4">
-                {recentExpenses.data.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="text-xl">
-                        {expense.category?.icon || "💰"}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {expense.description || "Uncategorized"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(expense.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="font-medium">
-                      {formatCurrency(expense.amount, expense.currency)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <SpendingByCategory data={spendingByCategory} />
+        <RecentExpenses />
+        <SpendingByCategory />
       </div>
     </div>
   );

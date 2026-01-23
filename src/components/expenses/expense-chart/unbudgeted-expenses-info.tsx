@@ -1,17 +1,10 @@
 import { COLORS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
+import { useExpenseChart } from "./expense-chart-context";
 
-interface UnbudgetedExpensesInfoProps {
-  unbudgetedAmount: number;
-  totalExpenses: number;
-  currency: string;
-}
+export const UnbudgetedExpensesInfo = () => {
+  const { unbudgetedAmount, totalExpenses, currency } = useExpenseChart();
 
-export const UnbudgetedExpensesInfo = ({
-  unbudgetedAmount,
-  totalExpenses,
-  currency,
-}: UnbudgetedExpensesInfoProps) => {
   return (
     <div className="border-t px-4 py-3">
       <div className="flex items-center justify-between text-sm">

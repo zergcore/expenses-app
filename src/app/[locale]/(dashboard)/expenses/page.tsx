@@ -6,6 +6,7 @@ import { ExpenseForm } from "@/components/expenses/expense-form";
 import { ExpensesClient } from "@/components/expenses/expenses-client";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { BudgetExpenseChart } from "@/components/expenses/budget-expense-chart";
+import { ExpenseChartProvider } from "@/components/expenses/expense-chart/expense-chart-context";
 
 interface ExpensesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -35,37 +36,39 @@ export default async function ExpensesPage({
   const totalBudgetSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
-          <p className="text-muted-foreground">
-            View and manage your transaction history
-          </p>
+    <ExpenseChartProvider
+      totalBudget={totalBudget}
+      budgetSpent={totalBudgetSpent}
+      totalExpenses={totalAmount}
+      currency="USD"
+    >
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
+            <p className="text-muted-foreground">
+              View and manage your transaction history
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <MonthSelector />
+            <ExpenseForm categories={categoryTree} />
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <MonthSelector />
-          <ExpenseForm categories={categoryTree} />
-        </div>
+
+        {/* Budget vs Expenses Chart */}
+        {totalBudget > 0 && (
+          <div className="max-w-md">
+            <BudgetExpenseChart />
+          </div>
+        )}
+
+        <ExpensesClient
+          expenses={expenses}
+          categories={categories}
+          totalAmount={totalAmount}
+        />
       </div>
-
-      {/* Budget vs Expenses Chart */}
-      {totalBudget > 0 && (
-        <div className="max-w-md">
-          <BudgetExpenseChart
-            totalBudget={totalBudget}
-            budgetSpent={totalBudgetSpent}
-            totalExpenses={totalAmount}
-            currency="USD"
-          />
-        </div>
-      )}
-
-      <ExpensesClient
-        expenses={expenses}
-        categories={categories}
-        totalAmount={totalAmount}
-      />
-    </div>
+    </ExpenseChartProvider>
   );
 }

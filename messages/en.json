@@ -6,7 +6,11 @@
     "budgetUsed": "Budget Used",
     "recentExpenses": "Recent Expenses",
     "thisMonth": "This month",
-    "noExpenses": "No expenses recorded yet. Add your first expense to get started."
+    "noExpenses": "No expenses recorded yet. Add your first expense to get started.",
+    "usdRate": "USD Rate",
+    "bsPerUsd": "Bs per USD",
+    "usdtRate": "USDT Rate",
+    "bsPerUsdt": "Bs per USDT"
   },
   "Auth": {
     "login": "Log in",
