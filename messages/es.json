@@ -35,7 +35,8 @@
     "updatePassword": "Actualizar contraseña",
     "updatePasswordDescription": "Ingresa tu nueva contraseña para restablecer tu contraseña.",
     "setNewPassword": "Establecer Nueva Contraseña",
-    "setNewPasswordDescription": "Ingresa tu nueva contraseña a continuación."
+    "setNewPasswordDescription": "Ingresa tu nueva contraseña a continuación.",
+    "register": "Registrarse"
   },
   "Profile": {
     "title": "Perfil",
@@ -73,5 +74,55 @@
     "categories": "Categorías",
     "rates": "Tasas",
     "settings": "Configuración"
+  },
+  "Landing": {
+    "title": "Cambio de Divisas",
+    "subtitle": "Hecho Simple",
+    "description": "Rastrea tasas de cambio en tiempo real para USD, USDT y EUR contra Bolívares. Calcula conversiones al instante con tasas oficiales del BCV y Binance P2P.",
+    "calculator": "Calculadora de Divisas",
+    "comparison": "Comparación USD vs USDT",
+    "currentRates": "Tasas Actuales",
+    "difference": "Diferencia",
+    "percentage": "Porcentaje",
+    "usdtPremium": "USDT se cotiza con una prima en comparación con la tasa oficial del USD",
+    "usdtDiscount": "USDT se cotiza con un descuento en comparación con la tasa oficial del USD",
+    "ctaTitle": "¿Listo para rastrear tus gastos?",
+    "ctaDescription": "Crea una cuenta para administrar presupuestos, rastrear gastos y obtener información financiera personalizada.",
+    "ctaButton": "Crear Cuenta Gratis",
+    "copyright": "Todos los derechos reservados.",
+    "header": {
+      "login": "Iniciar sesión",
+      "register": "Registrarse"
+    },
+    "footer": {
+      "description": "Todos los derechos reservados."
+    },
+    "cta": {
+      "title": "¿Listo para rastrear tus gastos?",
+      "description": "Crea una cuenta para administrar presupuestos, rastrear gastos y obtener información financiera personalizada.",
+      "button": "Crear Cuenta Gratis"
+    },
+    "rates": {
+      "title": "Tasas Actuales",
+      "description": "Rastrea tasas de cambio en tiempo real para USD, USDT y EUR contra Bolívares. Calcula conversiones al instante con tasas oficiales del BCV y Binance P2P.",
+      "premium_discount": "Prima/Descuento",
+      "usd": "USD (BCV Oficial)",
+      "usdt": "USDT (Binance P2P)",
+      "comparison_title": "Comparación USD vs USDT",
+      "bs_per_usd": "Bs por USD",
+      "bs_per_usdt": "Bs por USDT",
+      "difference": "Diferencia",
+      "percentage": "Porcentaje",
+      "usdt_premium": "USDT se cotiza con una prima en comparación con la tasa oficial del USD",
+      "usdt_discount": "USDT se cotiza con un descuento en comparación con la tasa oficial del USD  "
+    },
+    "hero": {
+      "title": "Cambio de Divisas",
+      "subtitle": "Hecho Simple",
+      "description": "Rastrea tasas de cambio en tiempo real para USD, USDT y EUR contra Bolívares. Calcula conversiones al instante con tasas oficiales del BCV y Binance P2P."
+    },
+    "currency": "Moneda",
+    "binanceP2P": "Binance P2P",
+    "bcvOfficial": "BCV Oficial"
   }
 }

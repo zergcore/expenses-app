@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export async function updateSession(
   request: NextRequest,
-  response?: NextResponse
+  response?: NextResponse,
 ) {
   let supabaseResponse =
     response ||
@@ -21,17 +21,17 @@ export async function updateSession(
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
+            request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
   // IMPORTANT: Avoid writing any logic between createServerClient and
@@ -42,19 +42,29 @@ export async function updateSession(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/en/login") &&
-    !request.nextUrl.pathname.startsWith("/es/login") &&
-    !request.nextUrl.pathname.startsWith("/register") &&
-    !request.nextUrl.pathname.startsWith("/en/register") &&
-    !request.nextUrl.pathname.startsWith("/es/register") &&
-    !request.nextUrl.pathname.startsWith("/forgot-password") &&
-    !request.nextUrl.pathname.startsWith("/en/forgot-password") &&
-    !request.nextUrl.pathname.startsWith("/es/forgot-password") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
+  // Define public paths that don't require authentication
+  const pathname = request.nextUrl.pathname;
+  const isPublicPath =
+    // Root landing page (/, /en, /es)
+    pathname === "/" ||
+    pathname === "/en" ||
+    pathname === "/es" ||
+    // Auth pages
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/en/login") ||
+    pathname.startsWith("/es/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/en/register") ||
+    pathname.startsWith("/es/register") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/en/forgot-password") ||
+    pathname.startsWith("/es/forgot-password") ||
+    pathname.startsWith("/update-password") ||
+    pathname.startsWith("/en/update-password") ||
+    pathname.startsWith("/es/update-password") ||
+    pathname.startsWith("/auth");
+
+  if (!user && !isPublicPath) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone();
     url.pathname = "/login";

@@ -18,12 +18,15 @@ import { signout } from "@/actions/auth";
 import Link from "next/link";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { LocaleSwitcher } from "./locale-switcher";
+import { ThemeSwitcher } from "./theme-switcher";
+import { useTranslations } from "next-intl";
 
 interface HeaderProps {
   user: User;
 }
 
 export function Header({ user }: HeaderProps) {
+  const t = useTranslations();
   const handleSignOut = async () => {
     await signout();
   };
@@ -53,6 +56,7 @@ export function Header({ user }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         <LocaleSwitcher />
+        <ThemeSwitcher />
         <NotificationBell userId={user.id} />
 
         {/* User menu */}
@@ -75,11 +79,11 @@ export function Header({ user }: HeaderProps) {
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link
-                href="/settings"
+                href="/profile"
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <UserIcon className="h-4 w-4" />
-                Profile
+                {t("Profile.title")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
@@ -88,7 +92,7 @@ export function Header({ user }: HeaderProps) {
                 className="flex items-center gap-2 cursor-pointer"
               >
                 <Settings className="h-4 w-4" />
-                Settings
+                {t("Settings.title")}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -97,7 +101,7 @@ export function Header({ user }: HeaderProps) {
               className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              {t("Auth.logout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -14,7 +14,7 @@ import {
 import { useTranslations } from "next-intl";
 
 const navigation = [
-  { key: "dashboard", href: "/", icon: LayoutDashboard },
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
   { key: "expenses", href: "/expenses", icon: Receipt },
   { key: "budgets", href: "/budgets", icon: Wallet },
   { key: "categories", href: "/categories", icon: Tags },
@@ -46,8 +46,8 @@ export function Sidebar({ className }: SidebarProps) {
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
           const isActive =
-            item.href === "/"
-              ? pathname === "/"
+            item.href === "/dashboard"
+              ? pathname === "/dashboard" || pathname.endsWith("/dashboard")
               : pathname.startsWith(item.href);
 
           return (

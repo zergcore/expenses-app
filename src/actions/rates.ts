@@ -1,7 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 
 interface RateData {
   pair: string;
@@ -70,7 +69,7 @@ async function fetchBinanceRate(): Promise<number | null> {
           classifies: ["mass", "profession"],
         }),
         next: { revalidate: 300 },
-      }
+      },
     );
 
     if (!response.ok) return null;
@@ -124,7 +123,7 @@ async function fetchCryptoRates(): Promise<CoinGeckoResponse | null> {
   try {
     const response = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,tether&vs_currencies=usd,usdt&include_24hr_change=true",
-      { next: { revalidate: 600 } }
+      { next: { revalidate: 600 } },
     );
 
     if (!response.ok) return null;
@@ -139,24 +138,29 @@ async function fetchCryptoRates(): Promise<CoinGeckoResponse | null> {
 // Database Cache Operations
 // -----------------------------------------------------------------------------
 
-async function updateRateInDB(
-  supabase: SupabaseClient,
-  pair: string,
-  source: string,
-  rate: number
-) {
+async function updateRateInDB(pair: string, source: string, rate: number) {
   if (rate <= 0) return;
 
-  // Insert new row to keep history (fetched_at makes it unique in time)
-  const { error } = await supabase.from("exchange_rates").insert({
-    pair,
-    source,
-    rate,
-    fetched_at: new Date().toISOString(),
-  });
+  // Use service role client to bypass RLS for system-level writes
+  // This is necessary because public users (anon) cannot insert rates
+  try {
+    const serviceClient = createServiceClient();
+    const { error } = await serviceClient.from("exchange_rates").insert({
+      pair,
+      source,
+      rate,
+      fetched_at: new Date().toISOString(),
+    });
 
-  if (error) {
-    console.error("DB Write Error:", error);
+    if (error) {
+      console.error("DB Write Error:", error);
+    }
+  } catch (e) {
+    // Service role key might not be available in all environments
+    console.warn(
+      "Could not write rate to DB (service role may not be configured):",
+      e,
+    );
   }
 }
 
@@ -174,7 +178,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
     .select("*")
     .gt(
       "fetched_at",
-      new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+      new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
     )
     .order("fetched_at", { ascending: false });
 
@@ -235,10 +239,10 @@ export async function getExchangeRates(): Promise<RateData[]> {
   const getVal = async (
     targetPair: string,
     targetSource: string,
-    newData: number | undefined
+    newData: number | undefined,
   ): Promise<number> => {
     if (newData && newData > 0) {
-      await updateRateInDB(supabase, targetPair, targetSource, newData);
+      await updateRateInDB(targetPair, targetSource, newData);
       return newData;
     }
     const cached = findLatest(targetPair, targetSource);

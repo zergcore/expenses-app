@@ -35,7 +35,8 @@
     "updatePassword": "Update password",
     "updatePasswordDescription": "Enter your new password to reset your password.",
     "setNewPassword": "Set New Password",
-    "setNewPasswordDescription": "Enter your new password below."
+    "setNewPasswordDescription": "Enter your new password below.",
+    "register": "Register"
   },
   "Profile": {
     "title": "Profile",
@@ -73,5 +74,51 @@
     "categories": "Categories",
     "rates": "Rates",
     "settings": "Settings"
+  },
+  "Landing": {
+    "title": "Currency Exchange",
+    "subtitle": "Made Simple",
+    "description": "Track real-time exchange rates for USD, USDT, and EUR against Bolivares. Calculate conversions instantly with official BCV and Binance P2P rates.",
+    "calculator": "Currency Calculator",
+    "comparison": "USD vs USDT Comparison",
+    "currentRates": "Current Rates",
+    "difference": "Difference",
+    "percentage": "Percentage",
+    "usdtPremium": "USDT is trading at a premium compared to official USD rate",
+    "usdtDiscount": "USDT is trading at a discount compared to official USD rate",
+    "ctaTitle": "Ready to track your expenses?",
+    "ctaDescription": "Create an account to manage budgets, track expenses, and get personalized financial insights.",
+    "ctaButton": "Create Free Account",
+    "copyright": "All rights reserved.",
+    "header": {
+      "login": "Login",
+      "register": "Register"
+    },
+    "footer": {
+      "description": "All rights reserved."
+    },
+    "cta": {
+      "title": "Ready to track your expenses?",
+      "description": "Create an account to manage budgets, track expenses, and get personalized financial insights.",
+      "button": "Create Free Account"
+    },
+    "hero": {
+      "title": "Currency Exchange",
+      "subtitle": "Made Simple",
+      "description": "Track real-time exchange rates for USD, USDT, and EUR against Bolivares. Calculate conversions instantly with official BCV and Binance P2P rates."
+    },
+    "rates": {
+      "title": "Current Rates",
+      "description": "Track real-time exchange rates for USD, USDT, and EUR against Bolivares. Calculate conversions instantly with official BCV and Binance P2P rates.",
+      "usdt_premium": "USDT is trading at a premium compared to official USD rate",
+      "usdt_discount": "USDT is trading at a discount compared to official USD rate",
+      "premium_discount": "Premium/Discount",
+      "usd": "USD (BCV Official)",
+      "usdt": "USDT (Binance P2P)",
+      "comparison_title": "USD vs USDT Comparison"
+    },
+    "currency": "Currency",
+    "binanceP2P": "Binance P2P",
+    "bcvOfficial": "BCV Official"
   }
 }
