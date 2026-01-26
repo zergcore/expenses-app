@@ -3,8 +3,9 @@ import { ThemeSwitcher } from "../layout/theme-switcher";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { User } from "@supabase/supabase-js";
 
-export const Header = () => {
+export const Header = ({ user }: { user: User | null | undefined }) => {
   const t = useTranslations();
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b bg-background/80 backdrop-blur-sm">
@@ -17,12 +18,20 @@ export const Header = () => {
         <div className="flex items-center gap-2">
           <LocaleSwitcher />
           <ThemeSwitcher />
-          <Button asChild variant="ghost">
-            <Link href="/login">{t("Auth.login")}</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/register">{t("Auth.register")}</Link>
-          </Button>
+          {user ? (
+            <Button asChild variant="ghost">
+              <Link href="/dashboard">{t("Auth.dashboard")}</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost">
+                <Link href="/login">{t("Auth.login")}</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/register">{t("Auth.register")}</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>

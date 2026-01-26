@@ -1,7 +1,7 @@
-import { ExchangeRate } from "@/types";
+import { RateData } from "@/actions/rates";
 import { useTranslations } from "next-intl";
 
-export const RateCardsSection = ({ rates }: { rates: ExchangeRate[] }) => {
+export const RateCardsSection = ({ rates }: { rates: RateData[] }) => {
   const t = useTranslations();
   return (
     <section className="container mx-auto px-4 py-12">

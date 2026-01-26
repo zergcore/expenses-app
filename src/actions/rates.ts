@@ -2,7 +2,7 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 
-interface RateData {
+export interface RateData {
   pair: string;
   rate: string;
   trend: "up" | "down" | "flat";
