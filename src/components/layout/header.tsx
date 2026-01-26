@@ -17,6 +17,7 @@ import { Sidebar } from "./sidebar";
 import { signout } from "@/actions/auth";
 import Link from "next/link";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { LocaleSwitcher } from "./locale-switcher";
 
 interface HeaderProps {
   user: User;
@@ -51,6 +52,7 @@ export function Header({ user }: HeaderProps) {
       <div className="hidden md:block" />
 
       <div className="flex items-center gap-2">
+        <LocaleSwitcher />
         <NotificationBell userId={user.id} />
 
         {/* User menu */}

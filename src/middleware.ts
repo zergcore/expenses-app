@@ -14,7 +14,10 @@ export async function middleware(request: NextRequest) {
   // 1. Run next-intl middleware to handle locale detection and redirects
   const response = handleI18n(request);
 
-  // 2. Validate session (auth) while preserving i18n response (cookies/headers)
+  // 2. Set x-pathname header for locale detection in server components
+  response.headers.set("x-pathname", request.nextUrl.pathname);
+
+  // 3. Validate session (auth) while preserving i18n response (cookies/headers)
   return await updateSession(request, response);
 }
 

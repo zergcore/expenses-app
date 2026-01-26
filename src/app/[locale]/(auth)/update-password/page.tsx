@@ -12,11 +12,13 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function UpdatePasswordPage() {
   const supabase = createClient();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations();
 
   useEffect(() => {
     // Avoids hydration mismatch and sync logic error
@@ -57,8 +59,10 @@ export default function UpdatePasswordPage() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
-        <CardDescription>Enter your new password below.</CardDescription>
+        <CardTitle className="text-2xl font-bold">
+          {t("Auth.setNewPassword")}
+        </CardTitle>
+        <CardDescription>{t("Auth.setNewPasswordDescription")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Auth

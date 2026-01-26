@@ -7,13 +7,71 @@
     "recentExpenses": "Gastos Recientes",
     "thisMonth": "Este mes",
     "noExpenses": "No hay gastos registrados aún. Agrega tu primer gasto para comenzar.",
-    "usdRate": "USD Rate",
-    "bsPerUsd": "Bs per USD",
-    "usdtRate": "USDT Rate",
-    "bsPerUsdt": "Bs per USDT"
+    "usdRate": "Tasa USD",
+    "bsPerUsd": "Bs por USD",
+    "usdtRate": "Tasa USDT",
+    "bsPerUsdt": "Bs por USDT"
   },
   "Auth": {
     "login": "Iniciar sesión",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesión",
+    "title": "Bienvenido de nuevo",
+    "description": "Inicia sesión en tu cuenta para continuar.",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
+    "forgotPasswordDescription": "Ingresa tu dirección de correo electrónico para restablecer tu contraseña.",
+    "backToLogin": "Volver al inicio de sesión",
+    "welcomeBack": "Bienvenido de nuevo",
+    "signInOrSignUp": "Inicia sesión o regístrate para continuar.",
+    "createAccount": "Crear cuenta",
+    "getStarted": "Comenzar",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirmPassword": "Confirmar contraseña",
+    "name": "Nombre",
+    "submit": "Enviar",
+    "cancel": "Cancelar",
+    "resetPassword": "Restablecer contraseña",
+    "sendResetLink": "Enviar enlace de restablecimiento",
+    "updatePassword": "Actualizar contraseña",
+    "updatePasswordDescription": "Ingresa tu nueva contraseña para restablecer tu contraseña.",
+    "setNewPassword": "Establecer Nueva Contraseña",
+    "setNewPasswordDescription": "Ingresa tu nueva contraseña a continuación."
+  },
+  "Profile": {
+    "title": "Perfil",
+    "description": "Administra tu perfil."
+  },
+  "Settings": {
+    "title": "Configuración",
+    "description": "Administra tu configuración."
+  },
+  "Rates": {
+    "title": "Tasas",
+    "description": "Ver tasas de cambio."
+  },
+  "Notifications": {
+    "title": "Notificaciones",
+    "description": "Ver tus notificaciones."
+  },
+  "Budgets": {
+    "title": "Presupuestos",
+    "description": "Administra tus presupuestos.",
+    "noBudgetsSet": "No hay presupuestos. Crea uno para comenzar a rastrear."
+  },
+  "Categories": {
+    "title": "Categorías",
+    "description": "Administra tus categorías."
+  },
+  "Expenses": {
+    "title": "Gastos",
+    "description": "Administra tus gastos."
+  },
+  "Nav": {
+    "dashboard": "Inicio",
+    "expenses": "Gastos",
+    "budgets": "Presupuestos",
+    "categories": "Categorías",
+    "rates": "Tasas",
+    "settings": "Configuración"
   }
 }

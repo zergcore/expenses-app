@@ -14,6 +14,64 @@
   },
   "Auth": {
     "login": "Log in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "title": "Welcome back",
+    "description": "Sign in to your account to continue.",
+    "forgotPassword": "Forgot password",
+    "forgotPasswordDescription": "Enter your email address to reset your password.",
+    "backToLogin": "Back to login",
+    "welcomeBack": "Welcome back",
+    "signInOrSignUp": "Sign in or sign up to continue.",
+    "createAccount": "Create account",
+    "getStarted": "Get started",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "name": "Name",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "resetPassword": "Reset password",
+    "sendResetLink": "Send reset link",
+    "updatePassword": "Update password",
+    "updatePasswordDescription": "Enter your new password to reset your password.",
+    "setNewPassword": "Set New Password",
+    "setNewPasswordDescription": "Enter your new password below."
+  },
+  "Profile": {
+    "title": "Profile",
+    "description": "Manage your profile settings."
+  },
+  "Settings": {
+    "title": "Settings",
+    "description": "Manage your application settings."
+  },
+  "Rates": {
+    "title": "Rates",
+    "description": "See exchange rates."
+  },
+  "Notifications": {
+    "title": "Notifications",
+    "description": "See your notifications."
+  },
+  "Budgets": {
+    "title": "Budgets",
+    "description": "Manage your budgets.",
+    "noBudgetsSet": "No budgets set. Create one to start tracking."
+  },
+  "Categories": {
+    "title": "Categories",
+    "description": "Manage your categories."
+  },
+  "Expenses": {
+    "title": "Expenses",
+    "description": "Manage your expenses."
+  },
+  "Nav": {
+    "dashboard": "Dashboard",
+    "expenses": "Expenses",
+    "budgets": "Budgets",
+    "categories": "Categories",
+    "rates": "Rates",
+    "settings": "Settings"
   }
 }

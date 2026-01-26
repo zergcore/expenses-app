@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 export default function RegisterPage() {
   const supabase = createClient();
   const router = useRouter();
+  const t = useTranslations();
 
   useEffect(() => {
     const {
@@ -34,9 +36,9 @@ export default function RegisterPage() {
     <Card className="w-full border-border bg-card">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold tracking-tight">
-          Create an account
+          {t("Auth.createAccount")}
         </CardTitle>
-        <CardDescription>Get started with Expense Tracker</CardDescription>
+        <CardDescription>{t("Auth.getStarted")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Auth

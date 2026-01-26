@@ -13,10 +13,12 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const supabase = createClient();
   const router = useRouter();
+  const t = useTranslations();
   useEffect(() => {
     const {
       data: { subscription },
@@ -37,11 +39,9 @@ export default function LoginPage() {
     <Card className="w-full border-border bg-card">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl font-bold tracking-tight">
-          Welcome back
+          {t("Auth.welcomeBack")}
         </CardTitle>
-        <CardDescription>
-          Sign in or create an account to continue
-        </CardDescription>
+        <CardDescription>{t("Auth.signInOrSignUp")}</CardDescription>
       </CardHeader>
       <CardContent>
         <Auth
@@ -79,7 +79,7 @@ export default function LoginPage() {
             href="/forgot-password"
             className="text-muted-foreground hover:text-primary underline underline-offset-4"
           >
-            Forgot your password?
+            {t("Auth.forgotPassword")}
           </Link>
         </div>
       </CardContent>

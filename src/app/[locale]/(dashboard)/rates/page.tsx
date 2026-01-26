@@ -1,6 +1,7 @@
 import { RateCard } from "@/components/rates/rate-card";
 import { requireUser } from "@/lib/auth/server";
 import { getExchangeRates } from "@/actions/rates";
+import { RatesTitle } from "@/components/rates/rates-title";
 
 export default async function RatesPage() {
   await requireUser();
@@ -9,15 +10,7 @@ export default async function RatesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Exchange Rates
-        </h1>
-        <p className="text-muted-foreground">
-          Current market rates for supported currencies.
-        </p>
-      </div>
-
+      <RatesTitle />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {rates.map((rate, index) => (
           <RateCard key={index} {...rate} />

@@ -2,6 +2,7 @@ import { CategoryList } from "@/components/categories/category-list";
 import { CategoryForm } from "@/components/categories/category-form";
 import { buildCategoryTree } from "@/lib/categories";
 import { getCategories } from "@/actions/categories";
+import { CategoriesTitle } from "@/components/categories/categories-title";
 
 export default async function CategoriesPage() {
   // Use Service Layer for data fetching
@@ -13,12 +14,7 @@ export default async function CategoriesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
-          <p className="text-muted-foreground">
-            Manage your budget categories and subcategories
-          </p>
-        </div>
+        <CategoriesTitle />
         <CategoryForm categories={categories} />
       </div>
 

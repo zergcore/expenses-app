@@ -14,10 +14,12 @@ import {
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function ForgotPasswordPage() {
   const supabase = createClient();
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations();
 
   useEffect(() => {
     // Avoids hydration mismatch and sync logic error
@@ -31,10 +33,11 @@ export default function ForgotPasswordPage() {
     <div className="flex h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Reset Password</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {t("Auth.forgotPassword")}
+          </CardTitle>
           <CardDescription>
-            Enter your email address and we will send you a link to reset your
-            password.
+            {t("Auth.forgotPasswordDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -76,7 +79,7 @@ export default function ForgotPasswordPage() {
         <CardFooter>
           <ButtonLink
             href="/login"
-            label="Back to Login"
+            label={t("Auth.backToLogin")}
             icon={<ArrowLeft className="h-4 w-4" />}
           />
         </CardFooter>

@@ -1,4 +1,5 @@
 import { SettingsForm } from "@/components/settings/settings-form";
+import { SettingsTitle } from "@/components/settings/settings-title";
 import { requireUser } from "@/lib/auth/server";
 
 export default async function SettingsPage() {
@@ -6,12 +7,7 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground">
-          Manage your application preferences.
-        </p>
-      </div>
+      <SettingsTitle />
 
       <SettingsForm />
     </div>

@@ -8,6 +8,7 @@ import { MonthSelector } from "@/components/expenses/month-selector";
 import { BudgetExpenseChart } from "@/components/expenses/budget-expense-chart";
 import { ExpenseChartProvider } from "@/components/expenses/expense-chart/expense-chart-context";
 import { ExportExpensesButton } from "@/components/expenses/export-expenses-button";
+import { ExpensesTitle } from "@/components/expenses/expenses-title";
 
 interface ExpensesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -45,12 +46,7 @@ export default async function ExpensesPage({
     >
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
-            <p className="text-muted-foreground">
-              View and manage your transaction history
-            </p>
-          </div>
+          <ExpensesTitle />
           <div className="flex items-center gap-4">
             <ExportExpensesButton />
             <MonthSelector />
