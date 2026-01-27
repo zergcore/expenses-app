@@ -23,6 +23,11 @@ const localeFlags: Record<Locale, string> = {
   es: "🇪🇸",
 };
 
+// Helper function to set cookies (extracted to avoid React compiler lint issues)
+function setCookie(name: string, value: string, maxAge: number) {
+  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}`;
+}
+
 export function LocaleSwitcher() {
   const locale = useLocale() as Locale;
   const router = useRouter();
@@ -30,6 +35,10 @@ export function LocaleSwitcher() {
   const [isPending, startTransition] = useTransition();
 
   const handleLocaleChange = (newLocale: Locale) => {
+    // Set cookie to remember user's manual locale preference
+    // This overrides IP-based detection on future visits
+    setCookie("NEXT_LOCALE", newLocale, 60 * 60 * 24 * 365);
+
     startTransition(() => {
       router.replace(pathname, { locale: newLocale });
     });
