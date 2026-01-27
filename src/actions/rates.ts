@@ -88,31 +88,66 @@ async function fetchBinanceRate(): Promise<number | null> {
   }
 }
 
+// DolarVzla API response type
+interface DolarVzlaResponse {
+  current: {
+    usd: number;
+    eur: number;
+    date: string;
+  };
+  previous: {
+    usd: number;
+    eur: number;
+    date: string;
+  };
+  changePercentage: {
+    usd: number;
+    eur: number;
+  };
+}
+
 async function fetchBCVRates(): Promise<{ usd: number; eur: number }> {
+  const apiKey = process.env.DOLAR_VZLA_KEY;
+
+  // Try dolarvzla.com API first (has both USD and EUR)
+  if (apiKey) {
+    try {
+      const response = await fetch(
+        "https://api.dolarvzla.com/public/exchange-rate",
+        {
+          headers: {
+            "x-dolarvzla-key": apiKey,
+          },
+          next: { revalidate: 3600 },
+        },
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as DolarVzlaResponse;
+        return {
+          usd: data.current?.usd || 0,
+          eur: data.current?.eur || 0,
+        };
+      }
+    } catch (e) {
+      console.error("DolarVzla Fetch Error:", e);
+    }
+  }
+
+  // Fallback to dolarapi.com (USD only, no EUR endpoint)
   try {
-    const [usdRes, eurRes] = await Promise.all([
-      fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
-        next: { revalidate: 3600 },
-      }),
-      fetch("https://ve.dolarapi.com/v1/euros/oficial", {
-        next: { revalidate: 3600 },
-      }).catch(() => null),
-    ]);
+    const usdRes = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
+      next: { revalidate: 3600 },
+    });
 
     let usdPrice = 0;
-    let eurPrice = 0;
 
     if (usdRes.ok) {
       const data = (await usdRes.json()) as DolarApiResponse;
       usdPrice = data.promedio ?? data.price ?? 0;
     }
 
-    if (eurRes && eurRes.ok) {
-      const data = (await eurRes.json()) as DolarApiResponse;
-      eurPrice = data.promedio ?? data.price ?? 0;
-    }
-
-    return { usd: usdPrice, eur: eurPrice };
+    return { usd: usdPrice, eur: 0 };
   } catch (e) {
     console.error("BCV Fetch Error:", e);
     return { usd: 0, eur: 0 };
