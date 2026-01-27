@@ -13,6 +13,22 @@
   "currency": "Currency",
   "budget_amount": "Budget Amount",
   "budget_currency": "Budget Currency",
+  "open_menu": "Open menu",
+  "actions": "Actions",
+  "permissions": "Permissions",
+  "edit": "Edit",
+  "delete": "Delete",
+  "add_subcategory": "Add Subcategory",
+  "system": "System",
+  "no_categories_found": "No categories found.",
+  "add_category": "Add Category",
+  "add_category_description": "Add a new category for your expenses.",
+  "Name": "Name",
+  "Type": "Type",
+  "creating": "Creating...",
+  "category_created_successfully": "Category created successfully",
+  "global": "Global (All Expenses)",
+  "global_category": "Global (All Expenses)",
   "Metadata": {
     "title": "Fin",
     "description": "Personal finance management application. Track expenses, manage budgets, and monitor currency exchange rates in real-time.",
@@ -108,7 +124,20 @@
   },
   "Categories": {
     "title": "Categories",
-    "description": "Manage your categories."
+    "description": "Manage your categories.",
+    "no_categories_found": "No categories found.",
+    "add_category": "Add Category",
+    "add_category_description": "Add a new category for your expenses.",
+    "Name": "Name",
+    "Type": "Type",
+    "creating": "Creating...",
+    "category_created_successfully": "Category created successfully",
+    "global": "Global (All Expenses)",
+    "global_category": "Global (All Expenses)",
+    "icon_placeholder": "Icon",
+    "name_placeholder": "e.g. Groceries",
+    "none": "None (Root Category)",
+    "create": "Create Category"
   },
   "Expenses": {
     "title": "Expenses",
@@ -232,5 +261,20 @@
     "binance_p2p_avg": "Binance P2P Average",
     "bcv_avg": "Official BCV Average",
     "coingecko": "Coingecko"
+  },
+  "CategoryNames": {
+    "Food & Drink": "Food & Drink",
+    "Transportation": "Transportation",
+    "Housing": "Housing",
+    "Entertainment": "Entertainment",
+    "Shopping": "Shopping",
+    "Other": "Other",
+    "Health": "Health",
+    "Pets": "Pets",
+    "Medicines": "Medicines",
+    "Doctors": "Doctors",
+    "Food": "Food",
+    "Toys": "Toys",
+    "Vet": "Vet"
   }
 }

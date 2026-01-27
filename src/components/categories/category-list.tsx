@@ -23,6 +23,8 @@ import { useState, useTransition, Fragment } from "react";
 import { cn } from "@/lib/utils";
 import { deleteCategory } from "@/actions/categories";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { getCategoryName } from "@/lib/utils";
 
 interface CategoryListProps {
   categories: Category[];
@@ -31,6 +33,7 @@ interface CategoryListProps {
 export function CategoryList({ categories }: CategoryListProps) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations();
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -52,13 +55,13 @@ export function CategoryList({ categories }: CategoryListProps) {
         loading: "Deleting category...",
         success: "Category deleted",
         error: "Failed to delete category",
-      }
+      },
     );
   };
 
   const renderRow = (
     category: Category,
-    level: number = 0
+    level: number = 0,
   ): React.ReactNode => {
     const hasChildren =
       category.subcategories && category.subcategories.length > 0;
@@ -99,26 +102,28 @@ export function CategoryList({ categories }: CategoryListProps) {
                 {category.icon || "📁"}
               </div>
               <span className={cn(level === 0 && "font-semibold")}>
-                {category.name}
+                {getCategoryName(category, t)}
               </span>
             </div>
           </TableCell>
           <TableCell>
-            {category.is_default && <Badge variant="secondary">System</Badge>}
+            {category.is_default && (
+              <Badge variant="secondary">{t("system")}</Badge>
+            )}
           </TableCell>
           <TableCell className="text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
+                  <span className="sr-only">{t("open_menu")}</span>
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem>Permissions (Coming Soon)</DropdownMenuItem>
+                <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
+                <DropdownMenuItem>{t("permissions")}</DropdownMenuItem>
                 {!category.is_default && (
-                  <DropdownMenuItem>Edit</DropdownMenuItem>
+                  <DropdownMenuItem>{t("edit")}</DropdownMenuItem>
                 )}
                 {!category.is_default && (
                   <DropdownMenuItem
@@ -126,17 +131,17 @@ export function CategoryList({ categories }: CategoryListProps) {
                     onClick={() => handleDelete(category.id)}
                     disabled={isPending}
                   >
-                    Delete
+                    {t("delete")}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem>Add Subcategory</DropdownMenuItem>
+                <DropdownMenuItem>{t("add_subcategory")}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </TableCell>
         </TableRow>
         {isExpanded &&
           category.subcategories?.map((sub: Category) =>
-            renderRow(sub, level + 1)
+            renderRow(sub, level + 1),
           )}
       </Fragment>
     );
@@ -145,9 +150,9 @@ export function CategoryList({ categories }: CategoryListProps) {
   if (categories.length === 0) {
     return (
       <div className="flex h-48 flex-col items-center justify-center gap-4 rounded-md border border-dashed text-center">
-        <p className="text-muted-foreground">No categories found.</p>
+        <p className="text-muted-foreground">{t("no_categories_found")}</p>
         <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add Category
+          <Plus className="mr-2 h-4 w-4" /> {t("add_category")}
         </Button>
       </div>
     );
@@ -158,8 +163,8 @@ export function CategoryList({ categories }: CategoryListProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Type</TableHead>
+            <TableHead>{t("Name")}</TableHead>
+            <TableHead>{t("Type")}</TableHead>
             <TableHead className="w-[70px]"></TableHead>
           </TableRow>
         </TableHeader>

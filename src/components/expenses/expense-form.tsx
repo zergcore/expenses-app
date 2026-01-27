@@ -34,6 +34,7 @@ import { CalendarIcon, Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { getCategoryName } from "@/lib/utils";
 
 interface ExpenseFormProps {
   categories: Category[]; // We can use the Tree structure to show groups?
@@ -155,7 +156,7 @@ export function ExpenseForm({
               <SelectContent>
                 <SelectItem value="none">Uncategorized</SelectItem>
                 {categories.map((cat) => (
-                  <CategorySelectItems key={cat.id} category={cat} />
+                  <CategorySelectItems key={cat.id} category={cat} t={t} />
                 ))}
               </SelectContent>
             </Select>
@@ -229,9 +230,11 @@ export function ExpenseForm({
 function CategorySelectItems({
   category,
   level = 0,
+  t,
 }: {
   category: Category;
   level?: number;
+  t: (key: string) => string;
 }) {
   return (
     <>
@@ -239,10 +242,15 @@ function CategorySelectItems({
         value={category.id}
         style={{ paddingLeft: `${level * 1 + 0.5}rem` }}
       >
-        {category.icon} {category.name}
+        {category.icon} {getCategoryName(category, t)}
       </SelectItem>
       {category.subcategories?.map((sub) => (
-        <CategorySelectItems key={sub.id} category={sub} level={level + 1} />
+        <CategorySelectItems
+          key={sub.id}
+          category={sub}
+          level={level + 1}
+          t={t}
+        />
       ))}
     </>
   );

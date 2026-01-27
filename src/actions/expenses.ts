@@ -70,6 +70,7 @@ export type Expense = {
     name: string;
     icon: string | null;
     color: string | null;
+    is_default: boolean;
   } | null;
   category_id: string | null;
 };
@@ -86,6 +87,7 @@ interface RawExpenseResponse {
     name: string;
     icon: string | null;
     color: string | null;
+    is_default: boolean;
   } | null;
 }
 
@@ -117,7 +119,8 @@ export async function getExpenses(
       category:categories (
         name,
         icon,
-        color
+        color,
+        is_default
       )
     `,
       { count: "exact" },
@@ -157,6 +160,7 @@ export async function getExpenses(
           name: item.category.name,
           icon: item.category.icon,
           color: item.category.color,
+          is_default: item.category.is_default,
         }
       : null,
   }));
@@ -207,6 +211,7 @@ export type CategorySpending = {
     name: string;
     icon: string | null;
     color: string | null;
+    is_default: boolean;
   } | null;
   amount: number;
   percentage: number;
@@ -239,7 +244,8 @@ export async function getSpendingByCategory(
       category:categories (
         name,
         icon,
-        color
+        color,
+        is_default
       )
     `,
     )
@@ -259,6 +265,7 @@ export async function getSpendingByCategory(
       name: string;
       icon: string | null;
       color: string | null;
+      is_default: boolean;
     } | null;
   };
 
@@ -274,6 +281,7 @@ export async function getSpendingByCategory(
       name: string;
       icon: string | null;
       color: string | null;
+      is_default: boolean;
     } | null;
     amount: number;
   };
@@ -502,7 +510,8 @@ export async function getAllExpensesForExport(
       category:categories (
         name,
         icon,
-        color
+        color,
+        is_default
       )
     `,
     )

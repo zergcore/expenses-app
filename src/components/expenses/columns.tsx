@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTranslations } from "next-intl";
+import { getCategoryName } from "@/lib/utils";
 
 export const useExpenseColumns = (
   categories: Category[],
@@ -45,7 +46,7 @@ export const useExpenseColumns = (
         return (
           <div className="flex items-center gap-2">
             <span className="text-lg">{category.icon}</span>
-            <span>{category.name}</span>
+            <span>{getCategoryName(category, t)}</span>
           </div>
         );
       },

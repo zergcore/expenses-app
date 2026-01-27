@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, getCategoryName } from "@/lib/utils";
 import { getSpendingByCategory } from "@/actions/expenses";
+import { getTranslations } from "next-intl/server";
 
 export async function SpendingByCategory() {
+  const t = await getTranslations();
   const spendingByCategory = await getSpendingByCategory();
   return (
     <Card className="col-span-1">
@@ -23,7 +25,9 @@ export async function SpendingByCategory() {
                   <div className="flex items-center gap-2">
                     <span>{item.category?.icon || "💰"}</span>
                     <span className="font-medium">
-                      {item.category?.name || "Uncategorized"}
+                      {item.category
+                        ? getCategoryName(item.category, t)
+                        : "Uncategorized"}
                     </span>
                   </div>
                   <div className="text-muted-foreground">

@@ -24,3 +24,13 @@ export function formatCurrency(amount: number, currency: string = "USD") {
     maximumFractionDigits: 2,
   }).format(amount);
 }
+
+export function getCategoryName(
+  category: { name: string; is_default: boolean },
+  t: (key: string) => string,
+) {
+  if (category.is_default) {
+    return t(`CategoryNames.${category.name}`);
+  }
+  return category.name;
+}

@@ -13,6 +13,25 @@
   "currency": "Moneda",
   "budget_amount": "Monto de presupuesto",
   "budget_currency": "Moneda de presupuesto",
+  "open_menu": "Abrir menú",
+  "actions": "Acciones",
+  "permissions": "Permisos",
+  "edit": "Editar",
+  "delete": "Eliminar",
+  "add_subcategory": "Agregar subcategoría",
+  "system": "Sistema",
+  "no_categories_found": "No se encontraron categorías.",
+  "add_category": "Agregar Categoría",
+  "add_category_description": "Agrega una nueva categoría para tus gastos.",
+  "Name": "Nombre",
+  "Type": "Tipo",
+  "creating": "Creando...",
+  "category_created_successfully": "Categoría creada exitosamente",
+  "global": "Global (Todos los gastos)",
+  "global_category": "Global (Todos los gastos)",
+  "icon_placeholder": "Icono",
+  "none": "Ninguno (Categoría raíz)",
+  "create": "Crear Categoría",
   "Metadata": {
     "title": "Fin",
     "description": "Aplicación de gestión de finanzas personales. Controla gastos, gestiona presupuestos y monitorea tasas de cambio en tiempo real.",
@@ -109,7 +128,20 @@
   },
   "Categories": {
     "title": "Categorías",
-    "description": "Administra tus categorías."
+    "description": "Administra tus categorías.",
+    "no_categories_found": "No se encontraron categorías.",
+    "add_category": "Agregar Categoría",
+    "add_category_description": "Agrega una nueva categoría para tus gastos.",
+    "Name": "Nombre",
+    "Type": "Tipo",
+    "creating": "Creando...",
+    "category_created_successfully": "Categoría creada exitosamente",
+    "global": "Global (Todos los gastos)",
+    "global_category": "Global (Todos los gastos)",
+    "icon_placeholder": "Icono",
+    "name_placeholder": "Ej. Comida",
+    "none": "Ninguno (Categoría raíz)",
+    "create": "Crear Categoría"
   },
   "Expenses": {
     "title": "Gastos",
@@ -240,5 +272,20 @@
     "binance_p2p_avg": "Binance P2P Promedio",
     "bcv_official": "BCV Promedio Oficial",
     "coingecko": "Coingecko"
+  },
+  "CategoryNames": {
+    "Food & Drink": "Comida y Bebida",
+    "Transportation": "Transporte",
+    "Housing": "Vivienda",
+    "Entertainment": "Entretenimiento",
+    "Shopping": "Compras",
+    "Other": "Otros",
+    "Health": "Salud",
+    "Pets": "Mascotas",
+    "Medicines": "Medicinas",
+    "Doctors": "Doctores",
+    "Food": "Comida",
+    "Toys": "Juguetes",
+    "Vet": "Veterinario"
   }
 }

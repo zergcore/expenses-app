@@ -29,6 +29,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useTranslations } from "next-intl";
 
 const initialState: ActionState = {
   error: "",
@@ -43,8 +44,9 @@ export function CategoryForm({ categories }: CategoryFormProps) {
   const [icon, setIcon] = useState("📁");
   const [state, formAction, isPending] = useActionState(
     createCategory,
-    initialState
+    initialState,
   );
+  const t = useTranslations("Categories");
 
   useEffect(() => {
     if (state.success) {
@@ -64,15 +66,13 @@ export function CategoryForm({ categories }: CategoryFormProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add Category
+          <Plus className="mr-2 h-4 w-4" /> {t("add_category")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Category</DialogTitle>
-          <DialogDescription>
-            Create a new category to organize your expenses.
-          </DialogDescription>
+          <DialogTitle>{t("add_category")}</DialogTitle>
+          <DialogDescription>{t("add_category_description")}</DialogDescription>
         </DialogHeader>
         <form action={formAction}>
           <div className="grid gap-4 py-4">
@@ -83,7 +83,7 @@ export function CategoryForm({ categories }: CategoryFormProps) {
               <Input
                 id="name"
                 name="name"
-                placeholder="e.g. Groceries"
+                placeholder={t("name_placeholder")}
                 className="col-span-3"
                 required
               />
@@ -100,7 +100,9 @@ export function CategoryForm({ categories }: CategoryFormProps) {
                       variant="outline"
                       className="w-full justify-start text-left font-normal"
                     >
-                      <span className="mr-2 text-lg">{icon || "Choose"}</span>
+                      <span className="mr-2 text-lg">
+                        {icon || t("icon_placeholder")}
+                      </span>
                       {icon ? "Change Icon" : "Select Icon"}
                     </Button>
                   </PopoverTrigger>
@@ -163,10 +165,10 @@ export function CategoryForm({ categories }: CategoryFormProps) {
               </Label>
               <Select name="parent_id">
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="None (Root Category)" />
+                  <SelectValue placeholder={t("none")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="root">None (Root Category)</SelectItem>
+                  <SelectItem value="root">{t("none")}</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.icon} {cat.name}
@@ -178,7 +180,7 @@ export function CategoryForm({ categories }: CategoryFormProps) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create Category"}
+              {isPending ? t("creating") : t("create")}
             </Button>
           </DialogFooter>
         </form>
