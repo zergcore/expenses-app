@@ -12,6 +12,8 @@ import {
   Settings,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { Isotipo } from "../logo/Isotipo";
 
 const navigation = [
   { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -39,7 +41,9 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-6">
-        <span className="text-lg font-semibold tracking-tight">Fin</span>
+        <span className="text-lg font-semibold tracking-tight">
+          <Isotipo width={100} height={100} />
+        </span>
       </div>
 
       {/* Navigation */}

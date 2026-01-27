@@ -1,9 +1,12 @@
+"use client";
+
 import { LocaleSwitcher } from "../layout/locale-switcher";
 import { ThemeSwitcher } from "../layout/theme-switcher";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { User } from "@supabase/supabase-js";
+import { Isotipo } from "../logo/Isotipo";
 
 export const Header = ({ user }: { user: User | null | undefined }) => {
   const t = useTranslations();
@@ -12,7 +15,7 @@ export const Header = ({ user }: { user: User | null | undefined }) => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Fin
+            <Isotipo width={100} height={100} />
           </span>
         </div>
         <div className="flex items-center gap-2">

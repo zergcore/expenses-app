@@ -25,6 +25,8 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
+import { Isotipo } from "../logo/Isotipo";
 
 interface HeaderProps {
   user: User;
@@ -54,7 +56,9 @@ export function Header({ user }: HeaderProps) {
             <Sidebar />
           </SheetContent>
         </Sheet>
-        <span className="text-lg font-semibold">Fin</span>
+        <span className="text-lg font-semibold">
+          <Isotipo width={100} height={100} />
+        </span>
       </div>
 
       {/* Desktop - empty left side */}
