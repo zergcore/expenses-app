@@ -11,9 +11,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeftRight } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { ArrowLeftRight, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { copyToClipboard } from "@/lib/clipboard";
 
 interface CurrencyCalculatorProps {
   rates: {
@@ -31,6 +38,7 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
   const [currency, setCurrency] = useState<CurrencyPair>("USD");
   const [direction, setDirection] = useState<"toBs" | "fromBs">("toBs");
   const [result, setResult] = useState<number>(0);
+  const [copied, setCopied] = useState(false);
 
   const getRateForCurrency = (curr: CurrencyPair): number => {
     switch (curr) {
@@ -67,6 +75,23 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
     EUR: "€",
   };
 
+  const getFormattedResult = () => {
+    return result.toLocaleString("es-VE", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const handleCopyResult = async () => {
+    const prefix = direction === "toBs" ? "Bs. " : currencySymbols[currency];
+    const textToCopy = `${prefix}${getFormattedResult()}`;
+    const success = await copyToClipboard(textToCopy);
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -85,9 +110,9 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
               <SelectValue placeholder="Select currency" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="USD">USD (BCV Official)</SelectItem>
-              <SelectItem value="USDT">USDT (Binance P2P)</SelectItem>
-              <SelectItem value="EUR">EUR (BCV Official)</SelectItem>
+              <SelectItem value="USD">{t("Landing.usd")}</SelectItem>
+              <SelectItem value="USDT">{t("Landing.usdt")}</SelectItem>
+              <SelectItem value="EUR">{t("Landing.eur")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -123,19 +148,39 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
 
           <div className="flex-1 space-y-2">
             <Label>{direction === "toBs" ? "Bs" : currency}</Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                {direction === "toBs" ? "Bs." : currencySymbols[currency]}
-              </span>
-              <Input
-                type="text"
-                value={result.toLocaleString("es-VE", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-                readOnly
-                className="pl-10 bg-muted"
-              />
+            <div className="relative flex gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  {direction === "toBs" ? "Bs." : currencySymbols[currency]}
+                </span>
+                <Input
+                  type="text"
+                  value={getFormattedResult()}
+                  readOnly
+                  className="pl-10 bg-muted"
+                />
+              </div>
+              <TooltipProvider>
+                <Tooltip open={copied ? true : undefined}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={handleCopyResult}
+                      className="shrink-0"
+                    >
+                      {copied ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{copied ? t("Landing.copied") : t("Landing.copy")}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>

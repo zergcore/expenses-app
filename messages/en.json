@@ -129,7 +129,12 @@
       "percentage": "Percentage"
     },
     "currency": "Currency",
+    "usd": "USD (BCV Official)",
+    "usdt": "USDT (Binance P2P)",
+    "eur": "EUR (BCV Official)",
     "binanceP2P": "Binance P2P",
-    "bcvOfficial": "BCV Official"
+    "bcvOfficial": "BCV Official",
+    "copy": "Copy",
+    "copied": "Copied!"
   }
 }

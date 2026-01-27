@@ -131,7 +131,12 @@
       "description": "Rastrea tasas de cambio en tiempo real para USD, USDT y EUR contra Bolívares. Calcula conversiones al instante con tasas oficiales del BCV y Binance P2P."
     },
     "currency": "Moneda",
+    "usd": "USD (BCV Oficial)",
+    "usdt": "USDT (Binance P2P)",
+    "eur": "EUR (BCV Oficial)",
     "binanceP2P": "Binance P2P",
-    "bcvOfficial": "BCV Oficial"
+    "bcvOfficial": "BCV Oficial",
+    "copy": "Copiar",
+    "copied": "¡Copiado!"
   }
 }
