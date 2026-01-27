@@ -1,10 +1,12 @@
 import { COLORS } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import { useExpenseChart } from "./expense-chart-context";
+import { useTranslations } from "next-intl";
 
 export const LegendExpenseChart = () => {
   const { budgetSpent, totalBudget, remaining, isOverBudget, currency } =
     useExpenseChart();
+  const t = useTranslations();
 
   return (
     <div className="flex flex-wrap justify-center gap-4 px-4 pb-4 text-sm">
@@ -14,7 +16,7 @@ export const LegendExpenseChart = () => {
           style={{ backgroundColor: COLORS.spent }}
         />
         <span className="text-muted-foreground">
-          Budgeted: {formatCurrency(budgetSpent, currency)}
+          {t("Expenses.budgeted")}: {formatCurrency(budgetSpent, currency)}
         </span>
       </div>
       <div className="flex items-center gap-2">
@@ -26,8 +28,14 @@ export const LegendExpenseChart = () => {
         />
         <span className="text-muted-foreground">
           {isOverBudget
-            ? `Over: ${formatCurrency(budgetSpent - totalBudget, currency)}`
-            : `Remaining: ${formatCurrency(remaining, currency)}`}
+            ? `${t("Expenses.over")}: ${formatCurrency(
+                budgetSpent - totalBudget,
+                currency,
+              )}`
+            : `${t("Expenses.remaining")}: ${formatCurrency(
+                remaining,
+                currency,
+              )}`}
         </span>
       </div>
     </div>

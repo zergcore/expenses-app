@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon, Loader2, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface ExpenseFormProps {
   categories: Category[]; // We can use the Tree structure to show groups?
@@ -48,9 +49,10 @@ export function ExpenseForm({
 }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(
-    initialData ? new Date(initialData.date) : new Date()
+    initialData ? new Date(initialData.date) : new Date(),
   );
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const t = useTranslations();
 
   // Choose action based on mode
   const actionFn = initialData ? updateExpense : createExpense;
@@ -58,39 +60,45 @@ export function ExpenseForm({
 
   useEffect(() => {
     if (state.success) {
-      const t = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setOpen(false);
         if (onSuccess) onSuccess();
       }, 0);
-      toast.success(initialData ? "Expense updated" : "Expense created");
-      return () => clearTimeout(t);
+      toast.success(
+        initialData
+          ? t("Expenses.expense_updated")
+          : t("Expenses.expense_created"),
+      );
+      return () => clearTimeout(timeoutId);
     } else if (state.error) {
       toast.error(state.error);
     }
-  }, [state, initialData, onSuccess]);
+  }, [state, initialData, onSuccess, t]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {initialData ? (
           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-            Edit
+            {t("Expenses.edit")}
           </DropdownMenuItem>
         ) : (
           <Button>
-            <Plus className="mr-2 h-4 w-4" /> Add Expense
+            <Plus className="mr-2 h-4 w-4" /> {t("Expenses.add_expense")}
           </Button>
         )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? "Edit Expense" : "Add Expense"}
+            {initialData
+              ? t("Expenses.edit_expense")
+              : t("Expenses.add_expense")}
           </DialogTitle>
           <DialogDescription>
             {initialData
-              ? "Update transaction details."
-              : "Log a new transaction."}
+              ? t("Expenses.update_transaction_details")
+              : t("Expenses.log_new_transaction")}
           </DialogDescription>
         </DialogHeader>
         <form action={action} className="grid gap-4 py-4">
@@ -100,7 +108,7 @@ export function ExpenseForm({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="amount" className="text-right">
-              Amount
+              {t("Expenses.amount")}
             </Label>
             <Input
               id="amount"
@@ -116,7 +124,7 @@ export function ExpenseForm({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="currency" className="text-right">
-              Currency
+              {t("Expenses.currency")}
             </Label>
             <Select
               name="currency"
@@ -135,7 +143,7 @@ export function ExpenseForm({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="category" className="text-right">
-              Category
+              {t("Expenses.category")}
             </Label>
             <Select
               name="category_id"
@@ -154,7 +162,7 @@ export function ExpenseForm({
           </div>
 
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Date</Label>
+            <Label className="text-right">{t("Expenses.date")}</Label>
             <div className="col-span-3">
               <input type="hidden" name="date" value={date.toISOString()} />
               <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
@@ -163,11 +171,15 @@ export function ExpenseForm({
                     variant={"outline"}
                     className={cn(
                       "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
+                      !date && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                    {date ? (
+                      format(date, "PPP")
+                    ) : (
+                      <span>{t("Expenses.pick_a_date")}</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -189,7 +201,7 @@ export function ExpenseForm({
 
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="description" className="text-right">
-              Note
+              {t("Expenses.note")}
             </Label>
             <Input
               id="description"
@@ -203,7 +215,9 @@ export function ExpenseForm({
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {initialData ? "Save changes" : "Create Expense"}
+              {initialData
+                ? t("Expenses.save_changes")
+                : t("Expenses.create_expense")}
             </Button>
           </DialogFooter>
         </form>

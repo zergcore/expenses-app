@@ -13,6 +13,7 @@ import { chartConfig, COLORS } from "@/lib/constants";
 import { Fragment } from "react/jsx-runtime";
 import { Label, Pie, PieChart } from "recharts";
 import { useExpenseChart } from "./expense-chart-context";
+import { useTranslations } from "next-intl";
 
 export const ChartCard = () => {
   const {
@@ -23,27 +24,34 @@ export const ChartCard = () => {
     budgetSpent,
     remaining,
   } = useExpenseChart();
+  const t = useTranslations();
 
   const chartData = isOverBudget
     ? [
-        { name: "spent", value: totalBudget, fill: COLORS.spent },
+        { name: t("Expenses.spent"), value: totalBudget, fill: COLORS.spent },
         {
-          name: "over",
+          name: t("Expenses.over"),
           value: overBudget,
           fill: COLORS.over,
         },
       ]
     : [
-        { name: "spent", value: budgetSpent, fill: COLORS.spent },
-        { name: "remaining", value: remaining, fill: COLORS.remaining },
+        { name: t("Expenses.spent"), value: budgetSpent, fill: COLORS.spent },
+        {
+          name: t("Expenses.remaining"),
+          value: remaining,
+          fill: COLORS.remaining,
+        },
       ];
 
   return (
     <Fragment>
       <CardHeader className="items-center pb-0">
-        <CardTitle>Budget Overview</CardTitle>
+        <CardTitle>{t("Expenses.budget_overview")}</CardTitle>
         <CardDescription>
-          {overBudget ? "You are over budget!" : "Current spending status"}
+          {overBudget
+            ? t("Expenses.over_budget")
+            : t("Expenses.current_spending_status")}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
@@ -87,7 +95,7 @@ export const ChartCard = () => {
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground text-sm"
                         >
-                          of budget
+                          {t("Expenses.of_budget")}
                         </tspan>
                       </text>
                     );

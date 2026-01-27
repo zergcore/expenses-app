@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
 import { DataTable } from "./data-table";
-import { getColumns } from "./columns";
+import { useExpenseColumns } from "./columns";
 import { Expense } from "@/actions/expenses";
 import { Category } from "@/lib/categories";
 
@@ -17,7 +16,7 @@ export function ExpensesClient({
   categories,
   totalAmount,
 }: ExpensesClientProps) {
-  const columns = useMemo(() => getColumns(categories), [categories]);
+  const columns = useExpenseColumns(categories);
 
   return (
     <DataTable columns={columns} data={expenses} totalAmount={totalAmount} />

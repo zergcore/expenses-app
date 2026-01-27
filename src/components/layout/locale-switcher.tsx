@@ -1,7 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "@/i18n/navigation";
-import { useLocale } from "next-intl";
+import { usePathname, useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -28,19 +27,31 @@ function setCookie(name: string, value: string, maxAge: number) {
   document.cookie = `${name}=${value}; path=/; max-age=${maxAge}`;
 }
 
-export function LocaleSwitcher() {
-  const locale = useLocale() as Locale;
+export function LocaleSwitcher({ currentLocale }: { currentLocale?: string }) {
+  const params = useParams();
+  const locale = (currentLocale || params.locale || "en") as Locale;
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
   const handleLocaleChange = (newLocale: Locale) => {
     // Set cookie to remember user's manual locale preference
-    // This overrides IP-based detection on future visits
     setCookie("NEXT_LOCALE", newLocale, 60 * 60 * 24 * 365);
 
     startTransition(() => {
-      router.replace(pathname, { locale: newLocale });
+      // Manually construct the new path: replace the locale segment
+      // pathname comes from next/navigation so it includes the locale (e.g. /en/dashboard)
+      const segments = pathname.split("/");
+      // The locale is usually the second segment [1] after empty string [0]
+      if (segments.length > 1 && locales.includes(segments[1] as Locale)) {
+        segments[1] = newLocale;
+      } else {
+        // If (unlikely) locale is missing from path, prepend it
+        segments.splice(1, 0, newLocale);
+      }
+      const newPath = segments.join("/");
+
+      router.replace(newPath);
     });
   };
 

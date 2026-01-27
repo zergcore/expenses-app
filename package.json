@@ -1,5 +1,17 @@
 {
-  "name": "expenses-app",
+  "name": "fin",
+  "displayName": "Fin",
+  "description": "Personal finance management",
+  "keywords": [
+    "personal finance",
+    "expense tracker",
+    "budget management",
+    "currency exchange",
+    "USD rate",
+    "USDT rate",
+    "bolivares",
+    "financial planning"
+  ],
   "version": "0.1.0",
   "private": true,
   "scripts": {

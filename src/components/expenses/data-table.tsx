@@ -18,6 +18,7 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -27,6 +28,7 @@ interface DataTableProps<TData, TValue> {
 
 export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
   const { columns, data } = props;
+  const t = useTranslations();
   const table = useReactTable({
     data,
     columns,
@@ -48,7 +50,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </TableHead>
                   );
@@ -67,7 +69,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                     <TableCell key={cell.id}>
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </TableCell>
                   ))}
@@ -79,7 +81,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {t("Expenses.table.no_expenses_yet")}
                 </TableCell>
               </TableRow>
             )}
@@ -89,7 +91,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
             <TableFooter>
               <TableRow>
                 <TableCell colSpan={columns.length - 2}>
-                  Total (Current Month)
+                  {t("Expenses.table.total")}
                 </TableCell>
                 <TableCell className="text-right font-bold">
                   {new Intl.NumberFormat("en-US", {
@@ -110,7 +112,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
           onClick={() => table.previousPage()}
           disabled={!table.getCanPreviousPage()}
         >
-          Previous
+          {t("Expenses.table.previous")}
         </Button>
         <Button
           variant="outline"
@@ -118,7 +120,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
         >
-          Next
+          {t("Expenses.table.next")}
         </Button>
       </div>
     </div>

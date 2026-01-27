@@ -11,7 +11,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Menu, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { signout } from "@/actions/auth";
@@ -45,10 +50,11 @@ export function Header({ user }: HeaderProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
             <Sidebar />
           </SheetContent>
         </Sheet>
-        <span className="text-lg font-semibold">Expense Tracker</span>
+        <span className="text-lg font-semibold">Fin</span>
       </div>
 
       {/* Desktop - empty left side */}
