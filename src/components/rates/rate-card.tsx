@@ -12,6 +12,8 @@ interface RateCardProps {
   description?: string;
 }
 
+import { useTranslations } from "next-intl";
+
 export function RateCard({
   pair,
   rate,
@@ -20,6 +22,16 @@ export function RateCard({
   description,
   source,
 }: RateCardProps & { source?: string }) {
+  const t = useTranslations("Landing");
+
+  const getTranslatedDescription = (desc?: string) => {
+    if (!desc) return "";
+    if (desc === "Binance P2P Avg") return t("binance_p2p_avg");
+    if (desc === "BCV Official") return t("bcv_official");
+    if (desc === "CoinGecko") return t("coingecko");
+    return desc;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -41,7 +53,7 @@ export function RateCard({
               })}
             >
               {change && <span className="mr-1">{change}</span>}
-              {description}
+              {getTranslatedDescription(description)}
             </p>
           )}
           {source && (

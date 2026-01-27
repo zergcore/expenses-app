@@ -24,13 +24,15 @@ import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { changePassword } from "@/actions/auth";
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 
 export function SettingsForm() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations();
   const [passwordState, passwordAction, isPasswordPending] = useActionState(
     changePassword,
-    {}
+    {},
   );
 
   useEffect(() => {
@@ -57,14 +59,12 @@ export function SettingsForm() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>General Preferences</CardTitle>
-          <CardDescription>
-            Manage your default currency and display settings.
-          </CardDescription>
+          <CardTitle>{t("Settings.title")}</CardTitle>
+          <CardDescription>{t("Settings.description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="currency">Default Currency</Label>
+            <Label htmlFor="currency">{t("Settings.defaultCurrency")}</Label>
             <Select defaultValue="USD">
               <SelectTrigger id="currency">
                 <SelectValue placeholder="Select currency" />
@@ -76,12 +76,12 @@ export function SettingsForm() {
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              This will be used as the default for new expenses.
+              {t("Settings.defaultCurrencyDescription")}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label>Theme</Label>
+            <Label>{t("Settings.theme")}</Label>
             <RadioGroup
               defaultValue={theme}
               onValueChange={(value) => setTheme(value)}
@@ -89,15 +89,15 @@ export function SettingsForm() {
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="light" id="light" />
-                <Label htmlFor="light">Light</Label>
+                <Label htmlFor="light">{t("Settings.light")}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="dark" id="dark" />
-                <Label htmlFor="dark">Dark</Label>
+                <Label htmlFor="dark">{t("Settings.dark")}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="system" id="system" />
-                <Label htmlFor="system">System</Label>
+                <Label htmlFor="system">{t("Settings.system")}</Label>
               </div>
             </RadioGroup>
           </div>
@@ -106,13 +106,13 @@ export function SettingsForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Security</CardTitle>
-          <CardDescription>Update your account password.</CardDescription>
+          <CardTitle>{t("Settings.security")}</CardTitle>
+          <CardDescription>{t("Settings.securityDescription")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={passwordAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">{t("Settings.newPassword")}</Label>
               <Input
                 id="password"
                 name="password"
@@ -123,14 +123,18 @@ export function SettingsForm() {
               />
             </div>
             <Button type="submit" disabled={isPasswordPending}>
-              {isPasswordPending ? "Updating..." : "Update Password"}
+              {isPasswordPending
+                ? t("Settings.updating")
+                : t("Settings.updatePassword")}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave}>Save Preference Changes</Button>
+        <Button onClick={handleSave}>
+          {t("Settings.savePreferenceChanges")}
+        </Button>
       </div>
     </div>
   );

@@ -67,7 +67,19 @@
   },
   "Settings": {
     "title": "Settings",
-    "description": "Manage your application settings."
+    "description": "Manage your application settings.",
+    "defaultCurrency": "Default Currency",
+    "defaultCurrencyDescription": "Set your default currency.",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "security": "Security",
+    "securityDescription": "Update your account password.",
+    "newPassword": "New Password",
+    "updating": "Updating...",
+    "updatePassword": "Update Password",
+    "savePreferenceChanges": "Save Preference Changes"
   },
   "Rates": {
     "title": "Rates",
@@ -160,7 +172,10 @@
     "budgets": "Budgets",
     "categories": "Categories",
     "rates": "Rates",
-    "settings": "Settings"
+    "settings": "Settings",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   },
   "Landing": {
     "title": "Currency Exchange",
@@ -213,6 +228,9 @@
     "binanceP2P": "Binance P2P",
     "bcvOfficial": "BCV Official",
     "copy": "Copy",
-    "copied": "Copied!"
+    "copied": "Copied!",
+    "binance_p2p_avg": "Binance P2P Average",
+    "bcv_avg": "Official BCV Average",
+    "coingecko": "Coingecko"
   }
 }

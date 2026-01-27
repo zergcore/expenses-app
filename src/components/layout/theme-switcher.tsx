@@ -10,10 +10,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Moon, Sun, Monitor } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
 
 export function ThemeSwitcher() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const t = useTranslations("Nav");
 
   // Prevent hydration mismatch by only rendering after mount
   useEffect(() => {
@@ -50,7 +52,7 @@ export function ThemeSwitcher() {
           }`}
         >
           <Sun className="h-4 w-4" />
-          <span>Light</span>
+          <span>{t("light")}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme("dark")}
@@ -59,7 +61,7 @@ export function ThemeSwitcher() {
           }`}
         >
           <Moon className="h-4 w-4" />
-          <span>Dark</span>
+          <span>{t("dark")}</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={() => setTheme("system")}
@@ -68,7 +70,7 @@ export function ThemeSwitcher() {
           }`}
         >
           <Monitor className="h-4 w-4" />
-          <span>System</span>
+          <span>{t("system")}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

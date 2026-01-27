@@ -122,7 +122,12 @@ interface DolarVzlaResponse {
   };
 }
 
-async function fetchBCVRates(): Promise<{ usd: number; eur: number }> {
+async function fetchBCVRates(): Promise<{
+  usd: number;
+  eur: number;
+  usdChange?: number;
+  eurChange?: number;
+}> {
   const apiKey = process.env.DOLAR_VZLA_KEY;
 
   // Try dolarvzla.com API first (has both USD and EUR)
@@ -143,6 +148,8 @@ async function fetchBCVRates(): Promise<{ usd: number; eur: number }> {
         return {
           usd: data.current?.usd || 0,
           eur: data.current?.eur || 0,
+          usdChange: data.changePercentage?.usd,
+          eurChange: data.changePercentage?.eur,
         };
       }
     } catch (e) {
@@ -223,7 +230,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
   const supabase = await createClient();
   const now = new Date();
 
-  // 1. Get Cached Rates from DB
+  // 1. Get Cached Rates from DB (Recent)
   const { data: cachedData } = await supabase
     .from("exchange_rates")
     .select("*")
@@ -235,6 +242,32 @@ export async function getExchangeRates(): Promise<RateData[]> {
 
   const findLatest = (pair: string, source: string) =>
     cachedData?.find((r) => r.pair === pair && r.source === source);
+
+  // Helper to fetch rate from ~24h ago
+  const get24hAgoRate = async (pair: string, source: string) => {
+    const { data } = await supabase
+      .from("exchange_rates")
+      .select("rate")
+      .eq("pair", pair)
+      .eq("source", source)
+      .lt(
+        "fetched_at",
+        new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString(),
+      ) // Older than 20h
+      .order("fetched_at", { ascending: false })
+      .limit(1)
+      .single();
+    return data?.rate ? parseFloat(data.rate) : null;
+  };
+
+  const calculateTrend = (changeVal: number) => {
+    if (Math.abs(changeVal) < 0.01) return "flat";
+    return changeVal > 0 ? "up" : "down";
+  };
+
+  const formatChange = (changeVal: number) => {
+    return `${changeVal > 0 ? "+" : ""}${changeVal.toFixed(2)}%`;
+  };
 
   // 2. Define Requirements
   const pairs = [
@@ -303,11 +336,15 @@ export async function getExchangeRates(): Promise<RateData[]> {
   // USDT / VES (Binance)
   const usdtVes = await getVal("USDT_VES", "Binance", binanceData);
   if (usdtVes > 0) {
+    const prevUsdt = await get24hAgoRate("USDT_VES", "Binance");
+    const changeVal =
+      prevUsdt && prevUsdt > 0 ? ((usdtVes - prevUsdt) / prevUsdt) * 100 : 0;
+
     results.push({
       pair: "USDT / USD",
       rate: `Bs. ${usdtVes.toFixed(2)}`,
-      trend: "flat",
-      change: "0.0%",
+      trend: calculateTrend(changeVal),
+      change: formatChange(changeVal),
       description: "Binance P2P Avg",
       value: usdtVes,
       source: "Binance",
@@ -317,11 +354,19 @@ export async function getExchangeRates(): Promise<RateData[]> {
   // USD / VES (BCV)
   const usdVes = await getVal("USD_VES", "BCV", bcvData?.usd);
   if (usdVes > 0) {
+    // Prefer API provided change, fallback to calculation if needed
+    let changeVal = bcvData?.usdChange;
+    if (changeVal === undefined) {
+      const prevUsd = await get24hAgoRate("USD_VES", "BCV");
+      changeVal =
+        prevUsd && prevUsd > 0 ? ((usdVes - prevUsd) / prevUsd) * 100 : 0;
+    }
+
     results.push({
       pair: "USD / VED",
       rate: `Bs. ${usdVes.toFixed(2)}`,
-      trend: "flat",
-      change: "0.0%",
+      trend: calculateTrend(changeVal),
+      change: formatChange(changeVal),
       description: "BCV Official",
       value: usdVes,
       source: "BCV",
@@ -331,11 +376,18 @@ export async function getExchangeRates(): Promise<RateData[]> {
   // EUR / VES (BCV)
   const eurVes = await getVal("EUR_VES", "BCV", bcvData?.eur);
   if (eurVes > 0) {
+    let changeVal = bcvData?.eurChange;
+    if (changeVal === undefined) {
+      const prevEur = await get24hAgoRate("EUR_VES", "BCV");
+      changeVal =
+        prevEur && prevEur > 0 ? ((eurVes - prevEur) / prevEur) * 100 : 0;
+    }
+
     results.push({
       pair: "EUR / VED",
       rate: `Bs. ${eurVes.toFixed(2)}`,
-      trend: "flat",
-      change: "0.0%",
+      trend: calculateTrend(changeVal),
+      change: formatChange(changeVal),
       description: "BCV Official",
       value: eurVes,
       source: "BCV",
@@ -361,6 +413,8 @@ export async function getExchangeRates(): Promise<RateData[]> {
   // BTC / USDT
   const btcUsdt = await getVal("BTC_USDT", "CoinGecko", btcUsdData?.usdt);
   if (btcUsdt > 0) {
+    // CoinGecko API typically returns USD change, assuming USDT tracks USD closely...
+    // Or we could calculate it using DB manually if desired, but 0.0% is probably safer default here if no explicit API data
     results.push({
       pair: "BTC / USDT",
       rate: `${btcUsdt.toLocaleString()} USDT`,

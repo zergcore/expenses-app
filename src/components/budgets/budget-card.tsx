@@ -25,7 +25,7 @@ export function BudgetCard({ budget }: BudgetCardProps) {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <span>{budget.category?.icon || "💰"}</span>
-          <span>{budget.category?.name || t("budgets.global_budget")}</span>
+          <span>{budget.category?.name || t("Budgets.global_budget")}</span>
         </CardTitle>
         {isHighAlert && <AlertCircle className="h-4 w-4 text-destructive" />}
       </CardHeader>
@@ -34,7 +34,7 @@ export function BudgetCard({ budget }: BudgetCardProps) {
           {formatCurrency(budget.amount, budget.currency || "USD")}
         </div>
         <p className="text-xs text-muted-foreground mb-4">
-          {isOverBudget ? t("budgets.over_by") : t("budgets.left")}
+          {isOverBudget ? t("Budgets.over_by") : t("Budgets.left")}
           {formatCurrency(
             Math.abs(budget.amount - budget.spent),
             budget.currency || "USD",
@@ -44,7 +44,7 @@ export function BudgetCard({ budget }: BudgetCardProps) {
         <div className="space-y-2">
           <div className="flex justify-between text-xs">
             <span>
-              {Math.round(budget.progress)}% {t("budgets.used")}
+              {Math.round(budget.progress)}% {t("Budgets.used")}
             </span>
             <span>
               {formatCurrency(budget.spent, budget.currency || "USD")}

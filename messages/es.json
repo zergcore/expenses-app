@@ -67,7 +67,19 @@
   },
   "Settings": {
     "title": "Configuración",
-    "description": "Administra tu configuración."
+    "description": "Administra tu configuración.",
+    "defaultCurrency": "Moneda por defecto",
+    "defaultCurrencyDescription": "Establece tu moneda por defecto.",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "security": "Seguridad",
+    "securityDescription": "Actualiza tu contraseña de cuenta.",
+    "newPassword": "Nueva contraseña",
+    "updating": "Actualizando...",
+    "updatePassword": "Actualizar contraseña",
+    "savePreferenceChanges": "Guardar cambios de preferencia"
   },
   "Rates": {
     "title": "Tasas",
@@ -92,7 +104,8 @@
     "used": "Usado",
     "select_category": "Seleccionar categoría",
     "budget_created_successfully": "Presupuesto creado exitosamente",
-    "global": "Global (Todos los gastos)"
+    "global": "Global (Todos los gastos)",
+    "global_budget": "Global (Todos los gastos)"
   },
   "Categories": {
     "title": "Categorías",
@@ -152,7 +165,8 @@
     "save_changes": "Guardar cambios",
     "create_expense": "Crear gasto",
     "pick_a_date": "Seleccionar fecha",
-    "note": "Nota"
+    "note": "Nota",
+    "export": "Exportar"
   },
   "Nav": {
     "dashboard": "Inicio",
@@ -160,7 +174,14 @@
     "budgets": "Presupuestos",
     "categories": "Categorías",
     "rates": "Tasas",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "theme": "Tema",
+    "notifications": "Notificaciones",
+    "language": "Idioma",
+    "logout": "Cerrar sesión",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
   },
   "Landing": {
     "title": "Cambio de Divisas",
@@ -215,6 +236,9 @@
     "binanceP2P": "Binance P2P",
     "bcvOfficial": "BCV Oficial",
     "copy": "Copiar",
-    "copied": "¡Copiado!"
+    "copied": "¡Copiado!",
+    "binance_p2p_avg": "Binance P2P Promedio",
+    "bcv_official": "BCV Promedio Oficial",
+    "coingecko": "Coingecko"
   }
 }

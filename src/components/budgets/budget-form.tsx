@@ -57,28 +57,28 @@ export function BudgetForm({ categories }: BudgetFormProps) {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          {t("budgets.create_budget")}
+          {t("Budgets.create_budget")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>{t("budgets.create_budget")}</DialogTitle>
+          <DialogTitle>{t("Budgets.create_budget")}</DialogTitle>
           <DialogDescription>
-            {t("budgets.create_budget_description")}
+            {t("Budgets.create_budget_description")}
           </DialogDescription>
         </DialogHeader>
         <form action={formAction}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category" className="text-right">
-                {t("budgets.category")}
+                {t("Budgets.category")}
               </Label>
               <Select name="category_id">
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder={t("budgets.select_category")} />
+                  <SelectValue placeholder={t("Budgets.select_category")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t("budgets.global")}</SelectItem>
+                  <SelectItem value="all">{t("Budgets.global")}</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.icon} {cat.name}
@@ -89,7 +89,7 @@ export function BudgetForm({ categories }: BudgetFormProps) {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="currency" className="text-right">
-                {t("budgets.currency")}
+                {t("Budgets.currency")}
               </Label>
               <Select name="currency" defaultValue="USD">
                 <SelectTrigger className="col-span-3">
@@ -104,7 +104,7 @@ export function BudgetForm({ categories }: BudgetFormProps) {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
-                {t("budgets.limit")}
+                {t("Budgets.limit")}
               </Label>
               <Input
                 id="amount"
@@ -118,7 +118,7 @@ export function BudgetForm({ categories }: BudgetFormProps) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? t("budgets.creating") : t("budgets.create_budget")}
+              {isPending ? t("Budgets.creating") : t("Budgets.create_budget")}
             </Button>
           </DialogFooter>
         </form>
