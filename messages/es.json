@@ -1,4 +1,18 @@
 {
+  "export": "Exportar",
+  "generating_export": "Generando exportación...",
+  "export_downloaded_successfully": "Exportación descargada exitosamente!",
+  "failed_to_export_expenses": "Error al exportar gastos.",
+  "something_went_wrong_exporting_expenses": "Algo salió mal al exportar gastos.",
+  "export_error": "Error de exportación:",
+  "no_expenses_to_export": "No hay gastos para exportar para este periodo.",
+  "date": "Fecha",
+  "category": "Categoría",
+  "description": "Descripción",
+  "amount": "Monto",
+  "currency": "Moneda",
+  "budget_amount": "Monto de presupuesto",
+  "budget_currency": "Moneda de presupuesto",
   "Metadata": {
     "title": "Fin",
     "description": "Aplicación de gestión de finanzas personales. Controla gastos, gestiona presupuestos y monitorea tasas de cambio en tiempo real.",

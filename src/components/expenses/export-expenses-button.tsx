@@ -5,6 +5,7 @@ import { Download } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { getAllExpensesForExport } from "@/actions/expenses";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export function ExportExpensesButton() {
   const searchParams = useSearchParams();
@@ -20,21 +21,21 @@ export function ExportExpensesButton() {
       const promise = getAllExpensesForExport(month, year);
 
       toast.promise(promise, {
-        loading: "Generating export...",
+        loading: t("generating_export"),
         success: (data) => {
           if (data.length === 0) {
-            return "No expenses to export for this period.";
+            return t("no_expenses_to_export");
           }
 
           // Convert to CSV
           const headers = [
-            "Date",
-            "Category",
-            "Description",
-            "Amount",
-            "Currency",
-            "Budget Amount",
-            "Budget Currency",
+            t("date"),
+            t("category"),
+            t("description"),
+            t("amount"),
+            t("currency"),
+            t("budget_amount"),
+            t("budget_currency"),
           ];
           const csvContent = [
             headers.join(","),
@@ -69,20 +70,22 @@ export function ExportExpensesButton() {
           link.click();
           document.body.removeChild(link);
 
-          return "Export downloaded successfully!";
+          return t("export_downloaded_successfully");
         },
-        error: "Failed to export expenses.",
+        error: t("failed_to_export_expenses"),
       });
     } catch (error) {
-      console.error("Export error:", error);
-      toast.error("Something went wrong exporting expenses.");
+      console.error(t("export_error"), error);
+      toast.error(t("something_went_wrong_exporting_expenses"));
     }
   };
+
+  const t = useTranslations("Expenses");
 
   return (
     <Button variant="outline" size="sm" onClick={handleExport}>
       <Download className="mr-2 h-4 w-4" />
-      Export
+      {t("export")}
     </Button>
   );
 }

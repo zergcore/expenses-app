@@ -1,4 +1,18 @@
 {
+  "export": "Export",
+  "generating_export": "Generating export...",
+  "export_downloaded_successfully": "Export downloaded successfully!",
+  "failed_to_export_expenses": "Failed to export expenses.",
+  "something_went_wrong_exporting_expenses": "Something went wrong exporting expenses.",
+  "export_error": "Export error:",
+  "no_expenses_to_export": "No expenses to export for this period.",
+  "date": "Date",
+  "category": "Category",
+  "description": "Description",
+  "amount": "Amount",
+  "currency": "Currency",
+  "budget_amount": "Budget Amount",
+  "budget_currency": "Budget Currency",
   "Metadata": {
     "title": "Fin",
     "description": "Personal finance management application. Track expenses, manage budgets, and monitor currency exchange rates in real-time.",

@@ -5,10 +5,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { format, subMonths, addMonths } from "date-fns";
+import { es, enUS } from "date-fns/locale";
+import { useParams } from "next/navigation";
 
 export function MonthSelector() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const locale = params.locale === "es" ? es : enUS;
 
   // Initialize from URL or default to current date
   const [currentDate, setCurrentDate] = useState(() => {
@@ -38,13 +42,17 @@ export function MonthSelector() {
     router.push(`?${params.toString()}`);
   };
 
+  const formattedDate = format(currentDate, "MMMM yyyy", { locale });
+  const capitalizedDate =
+    formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+
   return (
     <div className="flex items-center gap-4 bg-secondary/20 p-2 rounded-lg border">
       <Button variant="ghost" size="icon" onClick={handlePrev}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <div className="min-w-[120px] text-center font-semibold">
-        {format(currentDate, "MMMM yyyy")}
+      <div className="min-w-[120px] text-center font-semibold text-sm capitalize">
+        {capitalizedDate}
       </div>
       <Button variant="ghost" size="icon" onClick={handleNext}>
         <ChevronRight className="h-4 w-4" />
