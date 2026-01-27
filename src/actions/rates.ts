@@ -50,38 +50,54 @@ interface CoinGeckoResponse {
 
 async function fetchBinanceRate(): Promise<number | null> {
   try {
-    const response = await fetch(
-      "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fiat: "VES",
-          page: 1,
-          rows: 10,
-          tradeType: "SELL",
-          asset: "USDT",
-          countries: [],
-          proMerchantAds: false,
-          shieldMerchantAds: false,
-          publisherType: null,
-          payTypes: [],
-          classifies: ["mass", "profession"],
-        }),
-        next: { revalidate: 300 },
-      },
-    );
+    const fetchP2PRate = async (
+      tradeType: "BUY" | "SELL",
+    ): Promise<number | null> => {
+      const response = await fetch(
+        "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            fiat: "VES",
+            page: 1,
+            rows: 10,
+            tradeType,
+            asset: "USDT",
+            countries: [],
+            proMerchantAds: false,
+            shieldMerchantAds: false,
+            publisherType: null,
+            payTypes: [],
+            classifies: ["mass", "profession"],
+          }),
+          next: { revalidate: 300 },
+        },
+      );
 
-    if (!response.ok) return null;
+      if (!response.ok) return null;
 
-    const data = (await response.json()) as BinanceResponse;
-    const ads = data.data;
+      const data = (await response.json()) as BinanceResponse;
+      const ads = data.data;
 
-    if (!ads || ads.length === 0) return null;
+      if (!ads || ads.length === 0) return null;
 
-    // Calculate average of top 10 results
-    const sum = ads.reduce((acc, ad) => acc + parseFloat(ad.adv.price), 0);
-    return sum / ads.length;
+      // Calculate average of top 10 results
+      const sum = ads.reduce((acc, ad) => acc + parseFloat(ad.adv.price), 0);
+      return sum / ads.length;
+    };
+
+    // Fetch both BUY and SELL rates
+    const [sellRate, buyRate] = await Promise.all([
+      fetchP2PRate("SELL"),
+      fetchP2PRate("BUY"),
+    ]);
+
+    // Return average of both rates, or whichever is available
+    if (sellRate && buyRate) {
+      return (sellRate + buyRate) / 2;
+    }
+    return sellRate || buyRate || null;
   } catch (e) {
     console.error("Binance Fetch Error:", e);
     return null;
@@ -222,11 +238,11 @@ export async function getExchangeRates(): Promise<RateData[]> {
 
   // 2. Define Requirements
   const pairs = [
-    { pair: "USDT_VES", source: "Binance", staleMin: 30 },
+    { pair: "USDT_VES", source: "Binance", staleMin: 5 },
     { pair: "USD_VES", source: "BCV", staleMin: 1440 }, // 24h
     { pair: "EUR_VES", source: "BCV", staleMin: 1440 },
-    { pair: "BTC_USD", source: "CoinGecko", staleMin: 10 },
-    { pair: "BTC_USDT", source: "CoinGecko", staleMin: 10 },
+    { pair: "BTC_USD", source: "CoinGecko", staleMin: 5 },
+    { pair: "BTC_USDT", source: "CoinGecko", staleMin: 5 },
   ];
 
   const results: RateData[] = [];
