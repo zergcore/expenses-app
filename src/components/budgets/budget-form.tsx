@@ -24,6 +24,7 @@ import { createBudget, ActionState } from "@/actions/budgets";
 import { Category } from "@/lib/categories";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 const initialState: ActionState = {
   error: "",
@@ -37,45 +38,47 @@ export function BudgetForm({ categories }: BudgetFormProps) {
   const [open, setOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(
     createBudget,
-    initialState
+    initialState,
   );
+  const t = useTranslations();
 
   useEffect(() => {
     if (state.success) {
-      const t = setTimeout(() => setOpen(false), 0);
-      toast.success("Budget created successfully");
-      return () => clearTimeout(t);
+      const timeoutId = setTimeout(() => setOpen(false), 0);
+      toast.success(t("budgets.budget_created_successfully"));
+      return () => clearTimeout(timeoutId);
     } else if (state.error) {
       toast.error(state.error);
     }
-  }, [state]);
+  }, [state, t]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
-          <Plus className="mr-2 h-4 w-4" /> Create Budget
+          <Plus className="mr-2 h-4 w-4" />
+          {t("budgets.create_budget")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create Budget</DialogTitle>
+          <DialogTitle>{t("budgets.create_budget")}</DialogTitle>
           <DialogDescription>
-            Set a monthly spending limit for a category.
+            {t("budgets.create_budget_description")}
           </DialogDescription>
         </DialogHeader>
         <form action={formAction}>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="category" className="text-right">
-                Category
+                {t("budgets.category")}
               </Label>
               <Select name="category_id">
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={t("budgets.select_category")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Global (All Expenses)</SelectItem>
+                  <SelectItem value="all">{t("budgets.global")}</SelectItem>
                   {categories.map((cat) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.icon} {cat.name}
@@ -86,7 +89,7 @@ export function BudgetForm({ categories }: BudgetFormProps) {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="currency" className="text-right">
-                Currency
+                {t("budgets.currency")}
               </Label>
               <Select name="currency" defaultValue="USD">
                 <SelectTrigger className="col-span-3">
@@ -101,7 +104,7 @@ export function BudgetForm({ categories }: BudgetFormProps) {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="amount" className="text-right">
-                Limit
+                {t("budgets.limit")}
               </Label>
               <Input
                 id="amount"
@@ -115,7 +118,7 @@ export function BudgetForm({ categories }: BudgetFormProps) {
           </div>
           <DialogFooter>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create Budget"}
+              {isPending ? t("budgets.creating") : t("budgets.create_budget")}
             </Button>
           </DialogFooter>
         </form>

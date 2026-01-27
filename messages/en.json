@@ -66,7 +66,19 @@
   "Budgets": {
     "title": "Budgets",
     "description": "Manage your budgets.",
-    "noBudgetsSet": "No budgets set. Create one to start tracking."
+    "noBudgetsSet": "No budgets set. Create one to start tracking.",
+    "create_budget": "Create Budget",
+    "create_budget_description": "Set a monthly spending limit for a category.",
+    "category": "Category",
+    "currency": "Currency",
+    "limit": "Limit",
+    "creating": "Creating...",
+    "over_by": "Over by",
+    "left": "Left",
+    "used": "Used",
+    "select_category": "Select category",
+    "budget_created_successfully": "Budget created successfully",
+    "global": "Global (All Expenses)"
   },
   "Categories": {
     "title": "Categories",
