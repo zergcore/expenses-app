@@ -1,4 +1,12 @@
 {
+  "Metadata": {
+    "title": "Fin",
+    "description": "Personal finance management application. Track expenses, manage budgets, and monitor currency exchange rates in real-time.",
+    "keywords": "personal finance, expense tracker, budget management, currency exchange, USD rate, USDT rate, bolivares, financial planning",
+    "author": "Fin",
+    "twitterHandle": "@finapp",
+    "category": "Finance"
+  },
   "Dashboard": {
     "title": "Welcome back",
     "description": "Here's an overview of your finances.",
@@ -36,7 +44,8 @@
     "updatePasswordDescription": "Enter your new password to reset your password.",
     "setNewPassword": "Set New Password",
     "setNewPasswordDescription": "Enter your new password below.",
-    "register": "Register"
+    "register": "Register",
+    "dashboard": "Dashboard"
   },
   "Profile": {
     "title": "Profile",
@@ -115,7 +124,9 @@
       "premium_discount": "Premium/Discount",
       "usd": "USD (BCV Official)",
       "usdt": "USDT (Binance P2P)",
-      "comparison_title": "USD vs USDT Comparison"
+      "comparison_title": "USD vs USDT Comparison",
+      "difference": "Difference",
+      "percentage": "Percentage"
     },
     "currency": "Currency",
     "binanceP2P": "Binance P2P",

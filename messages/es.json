@@ -1,4 +1,12 @@
 {
+  "Metadata": {
+    "title": "Fin",
+    "description": "Aplicación de gestión de finanzas personales. Controla gastos, gestiona presupuestos y monitorea tasas de cambio en tiempo real.",
+    "keywords": "finanzas personales, control de gastos, gestión de presupuestos, cambio de divisas, tasa USD, tasa USDT, bolívares, planificación financiera",
+    "author": "Fin",
+    "twitterHandle": "@finapp",
+    "category": "Finanzas"
+  },
   "Dashboard": {
     "title": "Bienvenido de nuevo",
     "description": "Aquí tienes un resumen de tus finanzas.",
@@ -36,7 +44,8 @@
     "updatePasswordDescription": "Ingresa tu nueva contraseña para restablecer tu contraseña.",
     "setNewPassword": "Establecer Nueva Contraseña",
     "setNewPasswordDescription": "Ingresa tu nueva contraseña a continuación.",
-    "register": "Registrarse"
+    "register": "Registrarse",
+    "dashboard": "Dashboard"
   },
   "Profile": {
     "title": "Perfil",
