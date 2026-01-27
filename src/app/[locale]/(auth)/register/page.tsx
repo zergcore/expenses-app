@@ -25,7 +25,7 @@ export default function RegisterPage() {
     } = supabase.auth.onAuthStateChange((event) => {
       if (event === "SIGNED_IN") {
         router.refresh();
-        router.push("/");
+        router.push("/dashboard");
       }
     });
 
