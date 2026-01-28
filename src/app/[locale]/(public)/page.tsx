@@ -32,8 +32,8 @@ export default async function LandingPage() {
       <HeroSection />
 
       {/* Calculator & Chart Section */}
-      <section className="container mx-auto px-4 py-6">
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+      <section className="container mx-auto px-4 py-2 sm:py-6">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-8 max-w-4xl mx-auto">
           <CurrencyCalculator rates={calculatorRates} />
           <RateComparisonChart usdRate={usdRate} usdtRate={usdtRate} />
         </div>
