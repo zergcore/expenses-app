@@ -236,9 +236,9 @@
     "system": "Sistema"
   },
   "Landing": {
-    "title": "Cambio de Divisas",
-    "subtitle": "Hecho Simple",
-    "description": "Rastrea tasas de cambio en tiempo real para USD, USDT y EUR contra Bolívares. Calcula conversiones al instante con tasas oficiales del BCV y Binance P2P.",
+    "title": "Planificación Financiera Inteligente",
+    "subtitle": "Domina tus Finanzas",
+    "description": "Coordina tus finanzas rastreando tanto tus gastos como las tasas de cambio en tiempo real. Toma decisiones informadas entendiendo cómo las fluctuaciones cambiarias afectan tu presupuesto.",
     "calculator": "Calculadora de Divisas",
     "comparison": "Comparación USD vs USDT",
     "currentRates": "Tasas Actuales",
@@ -277,9 +277,9 @@
       "usdt_discount": "USDT se cotiza con un descuento en comparación con la tasa oficial del USD  "
     },
     "hero": {
-      "title": "Cambio de Divisas",
-      "subtitle": "Hecho Simple",
-      "description": "Rastrea tasas de cambio en tiempo real para USD, USDT y EUR contra Bolívares. Calcula conversiones al instante con tasas oficiales del BCV y Binance P2P."
+      "title": "Planificación Financiera Inteligente",
+      "subtitle": "Domina tus Finanzas",
+      "description": "Planifica tus gastos, sigue tu presupuesto y toma mejores decisiones financieras. Aunque monitoreamos tasas de cambio, nuestro principal objetivo es ayudarte a administrar tu dinero efectivamente."
     },
     "currency": "Moneda",
     "usd": "USD (BCV Oficial)",

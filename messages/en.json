@@ -227,9 +227,9 @@
     "system": "System"
   },
   "Landing": {
-    "title": "Currency Exchange",
-    "subtitle": "Made Simple",
-    "description": "Track real-time exchange rates for USD, USDT, and EUR against Bolivares. Calculate conversions instantly with official BCV and Binance P2P rates.",
+    "title": "Smart Financial Planning",
+    "subtitle": "Master Your Finances",
+    "description": "Coordinate your finances by tracking both your expenses and real-time exchange rates. Make informed decisions by understanding how currency fluctuations affect your budget.",
     "calculator": "Currency Calculator",
     "comparison": "USD vs USDT Comparison",
     "currentRates": "Current Rates",
@@ -254,9 +254,9 @@
       "button": "Create Free Account"
     },
     "hero": {
-      "title": "Currency Exchange",
-      "subtitle": "Made Simple",
-      "description": "Track real-time exchange rates for USD, USDT, and EUR against Bolivares. Calculate conversions instantly with official BCV and Binance P2P rates."
+      "title": "Smart Financial Planning",
+      "subtitle": "Master Your Finances",
+      "description": "Plan your expenses, track your budget, and make better financial decisions. While we track exchange rates, our main goal is to help you manage your money effectively."
     },
     "rates": {
       "title": "Current Rates",
