@@ -272,8 +272,8 @@ export async function getExchangeRates(): Promise<RateData[]> {
   // 2. Define Requirements
   const pairs = [
     { pair: "USDT_VES", source: "Binance", staleMin: 5 },
-    { pair: "USD_VES", source: "BCV", staleMin: 1440 }, // 24h
-    { pair: "EUR_VES", source: "BCV", staleMin: 1440 },
+    { pair: "USD_VES", source: "BCV", staleMin: 60 }, // 1h (was 24h)
+    { pair: "EUR_VES", source: "BCV", staleMin: 60 }, // 1h (was 24h)
     { pair: "BTC_USD", source: "CoinGecko", staleMin: 5 },
     { pair: "BTC_USDT", source: "CoinGecko", staleMin: 5 },
   ];
