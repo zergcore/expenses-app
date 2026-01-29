@@ -37,12 +37,27 @@ export const useExpenseColumns = (
       },
     },
     {
-      accessorKey: "category",
+      id: "category",
+      accessorFn: (row) => {
+        const category = row.category;
+        return category ? getCategoryName(category, t) : "Uncategorized";
+      },
       header: t("Expenses.category"),
+      filterFn: (row, id, value) => {
+        // Support filtering by ID (from pills) or "uncategorized"
+        if (value === "uncategorized") {
+          return !row.original.category_id;
+        }
+        return row.original.category_id === value;
+      },
       cell: ({ row }) => {
         const category = row.original.category;
         if (!category)
-          return <span className="text-muted-foreground">Uncategorized</span>;
+          return (
+            <span className="text-muted-foreground">
+              {t("Expenses.uncategorized")}
+            </span>
+          );
         return (
           <div className="flex items-center gap-2">
             <div
