@@ -28,9 +28,11 @@ export default async function DashboardPage() {
     totalBudget > 0 ? (totalBudgetSpent / totalBudget) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">
+          Dashboard
+        </h1>
         <p className="text-muted-foreground">
           {t("title")}
           {user?.email ? `, ${user.email.split("@")[0]}` : ""}
@@ -38,7 +40,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <SmallCard
           title={t("totalSpent")}
           value={formatCurrency(totalSpent)}
@@ -62,7 +64,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Recent Expenses & Categories */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2">
         <RecentExpenses />
         <SpendingByCategory />
       </div>

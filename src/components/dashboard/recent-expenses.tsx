@@ -15,14 +15,14 @@ export const RecentExpenses = async () => {
         {recentExpenses?.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t("noExpenses")}</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {recentExpenses?.map((expense) => (
               <div
                 key={expense.id}
                 className="flex items-center justify-between"
               >
                 <div className="flex items-center gap-2">
-                  <div className="text-xl">
+                  <div className="text-lg sm:text-xl">
                     {expense.category?.icon || "💰"}
                   </div>
                   <div>

@@ -83,7 +83,12 @@ export function ExportExpensesButton() {
   const t = useTranslations("Expenses");
 
   return (
-    <Button variant="outline" size="sm" onClick={handleExport}>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleExport}
+      className="bg-card/50 border-border/50 hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-colors"
+    >
       <Download className="mr-2 h-4 w-4" />
       {t("export")}
     </Button>

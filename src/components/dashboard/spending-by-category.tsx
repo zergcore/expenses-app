@@ -18,9 +18,9 @@ export async function SpendingByCategory() {
             No expenses recorded for this period.
           </p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             {spendingByCategory.map((item, index) => (
-              <div key={index} className="space-y-2">
+              <div key={index} className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
                     <span>{item.category?.icon || "💰"}</span>

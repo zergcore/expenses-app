@@ -41,12 +41,14 @@ interface ExpenseFormProps {
   // For simplicity, maybe flattened list with indentation or just root/sub in select
   initialData?: Expense;
   onSuccess?: () => void;
+  triggerButton?: React.ReactNode;
 }
 
 export function ExpenseForm({
   categories,
   initialData,
   onSuccess,
+  triggerButton,
 }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date>(
@@ -79,7 +81,9 @@ export function ExpenseForm({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {initialData ? (
+        {triggerButton ? (
+          triggerButton
+        ) : initialData ? (
           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
             {t("Expenses.edit")}
           </DropdownMenuItem>

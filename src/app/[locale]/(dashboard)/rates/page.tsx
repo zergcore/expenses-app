@@ -11,7 +11,7 @@ export default async function RatesPage() {
   return (
     <div className="space-y-6">
       <RatesTitle />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {rates.map((rate, index) => (
           <RateCard key={index} {...rate} />
         ))}

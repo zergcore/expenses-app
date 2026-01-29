@@ -5,7 +5,7 @@ import { Expense } from "@/actions/expenses";
 import { Category } from "@/lib/categories";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Pencil, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { deleteExpense } from "@/actions/expenses";
 import { toast } from "sonner";
@@ -30,7 +30,7 @@ export const useExpenseColumns = (
       cell: ({ row }) => {
         const date = new Date(row.getValue("date"));
         return (
-          <div className="text-muted-foreground">
+          <div className="text-xs text-muted-foreground/70">
             {date.toLocaleDateString()}
           </div>
         );
@@ -45,8 +45,13 @@ export const useExpenseColumns = (
           return <span className="text-muted-foreground">Uncategorized</span>;
         return (
           <div className="flex items-center gap-2">
-            <span className="text-lg">{category.icon}</span>
-            <span>{getCategoryName(category, t)}</span>
+            <div
+              className="flex items-center justify-center w-8 h-8 rounded-full text-lg"
+              style={{ backgroundColor: `${category.color}20` || "#f3f4f620" }}
+            >
+              {category.icon}
+            </div>
+            <span className="font-medium">{getCategoryName(category, t)}</span>
           </div>
         );
       },
@@ -86,7 +91,7 @@ export const useExpenseColumns = (
           }).format(amount);
         }
 
-        return <div className="text-right font-medium">{formatted}</div>;
+        return <div className="text-right text-lg font-bold">{formatted}</div>;
       },
     },
     {
@@ -108,34 +113,56 @@ export const useExpenseColumns = (
         };
 
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">{t("Expenses.open_menu")}</span>
-                <MoreHorizontal className="h-4 w-4" />
+          <div className="flex items-center justify-end gap-1">
+            {/* Hover-visible action icons */}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+              <ExpenseForm
+                categories={categories}
+                initialData={expense}
+                triggerButton={
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                }
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(expense));
+                  toast.success(t("Expenses.expense_duplicated"));
+                }}
+              >
+                <Copy className="h-3.5 w-3.5" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{t("Expenses.actions")}</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(expense.id)}
-              >
-                {t("Expenses.copy_id")}
-              </DropdownMenuItem>
-              {/* Edit Action - Prevents default to allow Dialog to open if we nested triggers, 
-                 but ExpenseForm handles the Trigger itself. 
-                 Wait, ExpenseForm has a DialogTrigger. putting a DialogTrigger inside DropdownMenuContent is slightly complex in shadcn/radix due to focus management.
-                 Ideally: Selection of MenuItem opens the generic Dialog state controlled here.
-            */}
-              <ExpenseForm categories={categories} initialData={expense} />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={handleDelete}
-              >
-                {t("Expenses.delete")}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+
+            {/* Always visible menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">{t("Expenses.open_menu")}</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t("Expenses.actions")}</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => navigator.clipboard.writeText(expense.id)}
+                >
+                  {t("Expenses.copy_id")}
+                </DropdownMenuItem>
+                <ExpenseForm categories={categories} initialData={expense} />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={handleDelete}
+                >
+                  {t("Expenses.delete")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         );
       },
     },

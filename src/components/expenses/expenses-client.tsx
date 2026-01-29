@@ -19,6 +19,11 @@ export function ExpensesClient({
   const columns = useExpenseColumns(categories);
 
   return (
-    <DataTable columns={columns} data={expenses} totalAmount={totalAmount} />
+    <DataTable
+      columns={columns}
+      data={expenses}
+      totalAmount={totalAmount}
+      categories={categories}
+    />
   );
 }

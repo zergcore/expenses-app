@@ -15,6 +15,12 @@ interface ExpenseChartContextType {
   overBudget: number;
   unbudgetedAmount: number;
   percentage: number;
+  // Daily spending insights
+  dailyAverageSpent: number;
+  dailyBudgetTarget: number;
+  daysRemaining: number;
+  daysElapsed: number;
+  projectedSpending: number;
 }
 
 const ExpenseChartContext = createContext<ExpenseChartContextType | null>(null);
@@ -41,6 +47,23 @@ export function ExpenseChartProvider({
   const percentage =
     totalBudget > 0 ? Math.round((budgetSpent / totalBudget) * 100) : 0;
 
+  // Daily spending insights
+  const now = new Date();
+  const daysElapsed = now.getDate();
+  const daysInMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+  ).getDate();
+  const daysRemaining = daysInMonth - daysElapsed;
+  const dailyAverageSpent = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+  const dailyBudgetTarget =
+    daysRemaining > 0 ? (totalBudget - budgetSpent) / daysRemaining : 0;
+
+  // Projected end-of-month spending: P = (A × D) + S
+  // Where A = daily average, D = remaining days, S = current total spent
+  const projectedSpending = dailyAverageSpent * daysRemaining + totalExpenses;
+
   const value = {
     totalBudget,
     budgetSpent,
@@ -51,6 +74,11 @@ export function ExpenseChartProvider({
     overBudget,
     unbudgetedAmount,
     percentage,
+    dailyAverageSpent,
+    dailyBudgetTarget,
+    daysRemaining,
+    daysElapsed,
+    projectedSpending,
   };
 
   return (

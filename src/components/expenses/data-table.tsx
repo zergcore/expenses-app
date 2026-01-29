@@ -6,6 +6,8 @@ import {
   getCoreRowModel,
   useReactTable,
   getPaginationRowModel,
+  getFilteredRowModel,
+  ColumnFiltersState,
 } from "@tanstack/react-table";
 
 import {
@@ -18,34 +20,110 @@ import {
   TableFooter,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useTranslations } from "next-intl";
+import { useState, useMemo } from "react";
+import { Search } from "lucide-react";
+import { Category } from "@/lib/categories";
+import { getCategoryName } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   totalAmount?: number;
+  categories?: Category[];
 }
 
 export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
-  const { columns, data } = props;
+  const { columns, data, categories } = props;
   const t = useTranslations();
+  const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Get unique root categories for filter pills
+  const rootCategories = useMemo(() => {
+    if (!categories) return [];
+    return categories.filter((c) => !c.parent_id).slice(0, 5);
+  }, [categories]);
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    globalFilterFn: "includesString",
+    state: {
+      globalFilter,
+      columnFilters,
+    },
   });
 
+  const handleCategoryFilter = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+    if (categoryId === null) {
+      setColumnFilters([]);
+    } else {
+      setColumnFilters([{ id: "category", value: categoryId }]);
+    }
+  };
+
   return (
-    <div>
-      <div className="rounded-md border">
+    <div className="space-y-4">
+      {/* Search and filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        {/* Search input */}
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder={t("Expenses.search_expenses")}
+            value={globalFilter}
+            onChange={(e) => setGlobalFilter(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+
+        {/* Category filter pills */}
+        {rootCategories.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            <Button
+              variant={selectedCategory === null ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => handleCategoryFilter(null)}
+            >
+              {t("Expenses.all_categories")}
+            </Button>
+            {rootCategories.map((category) => (
+              <Button
+                key={category.id}
+                variant={
+                  selectedCategory === category.id ? "default" : "outline"
+                }
+                size="sm"
+                className="h-8 text-xs gap-1.5"
+                onClick={() => handleCategoryFilter(category.id)}
+              >
+                <span>{category.icon}</span>
+                <span>{getCategoryName(category, t)}</span>
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Table with sticky header */}
+      <div className="rounded-md border max-h-[60vh] overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky top-0 bg-background z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className="bg-background">
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -64,6 +142,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="group hover:bg-muted/50 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
@@ -88,7 +167,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
           </TableBody>
           {/* Footer for Total */}
           {typeof props.totalAmount === "number" && (
-            <TableFooter>
+            <TableFooter className="sticky bottom-0 bg-background">
               <TableRow>
                 <TableCell colSpan={columns.length - 2}>
                   {t("Expenses.table.total")}

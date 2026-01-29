@@ -46,7 +46,7 @@ export const ChartCard = () => {
 
   return (
     <Fragment>
-      <CardHeader className="items-center pb-0">
+      <CardHeader className="items-center pb-0 py-3 sm:py-6">
         <CardTitle>{t("Expenses.budget_overview")}</CardTitle>
         <CardDescription>
           {overBudget
@@ -57,7 +57,7 @@ export const ChartCard = () => {
       <CardContent className="flex-1 pb-0">
         <ChartContainer
           config={chartConfig}
-          className="mx-auto aspect-square max-h-[250px]"
+          className="mx-auto aspect-square max-h-[160px] sm:max-h-[200px] md:max-h-[250px]"
         >
           <PieChart>
             <ChartTooltip
@@ -68,8 +68,9 @@ export const ChartCard = () => {
               data={chartData}
               dataKey="value"
               nameKey="name"
-              innerRadius={60}
-              strokeWidth={5}
+              innerRadius={45}
+              outerRadius={70}
+              strokeWidth={4}
             >
               <Label
                 content={({ viewBox }) => {
@@ -84,7 +85,7 @@ export const ChartCard = () => {
                         <tspan
                           x={viewBox.cx}
                           y={viewBox.cy}
-                          className={`fill-foreground text-3xl font-bold ${
+                          className={`fill-foreground text-2xl sm:text-3xl font-bold ${
                             overBudget ? "fill-destructive" : ""
                           }`}
                         >
@@ -92,8 +93,8 @@ export const ChartCard = () => {
                         </tspan>
                         <tspan
                           x={viewBox.cx}
-                          y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground text-sm"
+                          y={(viewBox.cy || 0) + 20}
+                          className="fill-muted-foreground text-xs sm:text-sm"
                         >
                           {t("Expenses.of_budget")}
                         </tspan>

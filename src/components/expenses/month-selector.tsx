@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { format, subMonths, addMonths } from "date-fns";
@@ -47,14 +47,27 @@ export function MonthSelector() {
     formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
   return (
-    <div className="flex items-center gap-4 bg-secondary/20 p-2 rounded-lg border">
-      <Button variant="ghost" size="icon" onClick={handlePrev}>
+    <div className="inline-flex items-center gap-0.5 bg-secondary/30 rounded-full border border-border/40 p-0.5">
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handlePrev}
+        className="h-8 w-8 rounded-full hover:bg-background/80 transition-colors"
+      >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <div className="min-w-[120px] text-center font-semibold text-sm capitalize">
-        {capitalizedDate}
+      <div className="flex items-center gap-1.5 px-2">
+        <Calendar className="h-3.5 w-3.5 text-primary" />
+        <span className="font-medium text-sm min-w-[100px] text-center">
+          {capitalizedDate}
+        </span>
       </div>
-      <Button variant="ghost" size="icon" onClick={handleNext}>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleNext}
+        className="h-8 w-8 rounded-full hover:bg-background/80 transition-colors"
+      >
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
