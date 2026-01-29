@@ -43,7 +43,7 @@ export default async function LandingPage() {
       <RateCardsSection rates={rates} />
 
       {/* CTA Section */}
-      <CTASection />
+      {!user && <CTASection />}
 
       {/* Footer */}
       <Footer />
