@@ -48,7 +48,9 @@
     "usdRate": "USD Rate",
     "bsPerUsd": "Bs per USD",
     "usdtRate": "USDT Rate",
-    "bsPerUsdt": "Bs per USDT"
+    "bsPerUsdt": "Bs per USDT",
+    "spending_by_category": "Spending by Category",
+    "no_expenses_recorded": "No expenses recorded for this period."
   },
   "Auth": {
     "login": "Log in",
@@ -79,7 +81,15 @@
   },
   "Profile": {
     "title": "Profile",
-    "description": "Manage your profile settings."
+    "description": "Manage your profile settings.",
+    "profile_information": "Profile Information",
+    "profile_description": "Update your personal details.",
+    "profile_updated": "Profile updated",
+    "change_avatar": "Change avatar",
+    "email_cannot_be_changed_directly": "Email cannot be changed directly.",
+    "display_name": "Display Name",
+    "saving": "Saving...",
+    "save_changes": "Save Changes"
   },
   "Settings": {
     "title": "Settings",
@@ -213,7 +223,8 @@
     "days_remaining_month": "days remaining this month",
     "days_passed": "days passed",
     "needs_category": "needs categorization",
-    "all_categorized": "All expenses categorized"
+    "all_categorized": "All expenses categorized",
+    "uncategorized": "Uncategorized"
   },
   "Nav": {
     "dashboard": "Dashboard",

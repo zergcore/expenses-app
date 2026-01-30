@@ -10,12 +10,12 @@ export async function SpendingByCategory() {
   return (
     <Card className="col-span-1">
       <CardHeader>
-        <CardTitle>Spending by Category</CardTitle>
+        <CardTitle>{t("Dashboard.spending_by_category")}</CardTitle>
       </CardHeader>
       <CardContent>
         {spendingByCategory.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No expenses recorded for this period.
+            {t("Dashboard.no_expenses_recorded")}
           </p>
         ) : (
           <div className="space-y-3 sm:space-y-4">

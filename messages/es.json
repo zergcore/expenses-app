@@ -51,7 +51,9 @@
     "usdRate": "Tasa USD",
     "bsPerUsd": "Bs por USD",
     "usdtRate": "Tasa USDT",
-    "bsPerUsdt": "Bs por USDT"
+    "bsPerUsdt": "Bs por USDT",
+    "spending_by_category": "Gastos por categoría",
+    "no_expenses_recorded": "No hay gastos registrados para este período."
   },
   "Auth": {
     "login": "Iniciar sesión",
@@ -82,7 +84,15 @@
   },
   "Profile": {
     "title": "Perfil",
-    "description": "Administra tu perfil."
+    "description": "Administra tu perfil.",
+    "profile_updated": "Perfil actualizado",
+    "profile_information": "Información del perfil",
+    "profile_description": "Actualiza tus datos personales.",
+    "change_avatar": "Cambiar avatar",
+    "email_cannot_be_changed_directly": "El correo electrónico no se puede cambiar directamente.",
+    "display_name": "Nombre de visualización",
+    "saving": "Guardando...",
+    "save_changes": "Guardar cambios"
   },
   "Settings": {
     "title": "Configuración",
@@ -218,7 +228,8 @@
     "days_remaining_month": "días restantes este mes",
     "days_passed": "días transcurridos",
     "needs_category": "necesita categorización",
-    "all_categorized": "Todos los gastos categorizados"
+    "all_categorized": "Todos los gastos categorizados",
+    "uncategorized": "No categorizado"
   },
   "Nav": {
     "dashboard": "Inicio",

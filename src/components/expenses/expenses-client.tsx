@@ -2,27 +2,22 @@
 
 import { DataTable } from "./data-table";
 import { useExpenseColumns } from "./columns";
-import { Expense } from "@/actions/expenses";
 import { Category } from "@/lib/categories";
+import { useExpenseChart } from "./expense-chart/expense-chart-context";
 
 interface ExpensesClientProps {
-  expenses: Expense[];
   categories: Category[];
-  totalAmount: number;
 }
 
-export function ExpensesClient({
-  expenses,
-  categories,
-  totalAmount,
-}: ExpensesClientProps) {
+export function ExpensesClient({ categories }: ExpensesClientProps) {
   const columns = useExpenseColumns(categories);
+  const { expenses, totalExpenses } = useExpenseChart();
 
   return (
     <DataTable
       columns={columns}
       data={expenses}
-      totalAmount={totalAmount}
+      totalAmount={totalExpenses}
       categories={categories}
     />
   );

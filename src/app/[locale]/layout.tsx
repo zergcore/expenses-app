@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/context/theme-provider";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { getLocalizedMetadata } from "@/lib/metadata";
+import { Analytics } from "@vercel/analytics/next";
 import "../globals.css";
 
 const inter = Inter({
@@ -34,6 +35,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
+        <Analytics />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

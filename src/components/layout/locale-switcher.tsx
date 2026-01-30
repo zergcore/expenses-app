@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Globe } from "lucide-react";
 import { locales, type Locale } from "@/i18n/config";
-import { useTransition } from "react";
+import { useTransition, useState, useEffect } from "react";
 
 const localeNames: Record<Locale, string> = {
   en: "English",
@@ -33,6 +33,12 @@ export function LocaleSwitcher({ currentLocale }: { currentLocale?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   const handleLocaleChange = (newLocale: Locale) => {
     // Set cookie to remember user's manual locale preference
@@ -54,6 +60,20 @@ export function LocaleSwitcher({ currentLocale }: { currentLocale?: string }) {
       router.replace(newPath);
     });
   };
+
+  if (!mounted) {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9"
+        disabled={isPending}
+      >
+        <Globe className="h-5 w-5" />
+        <span className="sr-only">Change language</span>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>

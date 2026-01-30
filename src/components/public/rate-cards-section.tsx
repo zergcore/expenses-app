@@ -1,8 +1,17 @@
+"use client";
+
 import { RateData } from "@/actions/rates";
 import { useTranslations } from "next-intl";
+import { useRealtimeRates } from "@/hooks/use-realtime-rates";
 
-export const RateCardsSection = ({ rates }: { rates: RateData[] }) => {
+export const RateCardsSection = ({
+  rates: initialRates,
+}: {
+  rates: RateData[];
+}) => {
   const t = useTranslations();
+  const rates = useRealtimeRates(initialRates);
+
   return (
     <section className="container mx-auto px-4 py-8 sm:py-12">
       <h2 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8">

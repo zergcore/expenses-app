@@ -14,7 +14,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { User } from "@supabase/supabase-js";
 import { useState } from "react";
-// import { updateProfile } from "@/actions/profile"; // We might need this if we want real functionality
+import { useTranslations } from "next-intl";
+// import { updateProfile } from "@/actions/profile";
 
 interface ProfileFormProps {
   user: User;
@@ -22,13 +23,14 @@ interface ProfileFormProps {
 
 export function ProfileForm({ user }: ProfileFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const t = useTranslations();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     // Simulate update
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    toast.success("Profile updated");
+    toast.success(t("Profile.profile_updated"));
     setIsLoading(false);
   };
 
@@ -38,8 +40,8 @@ export function ProfileForm({ user }: ProfileFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Profile Information</CardTitle>
-          <CardDescription>Update your personal details.</CardDescription>
+          <CardTitle>{t("Profile.profile_information")}</CardTitle>
+          <CardDescription>{t("Profile.profile_description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
@@ -49,7 +51,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
               </AvatarFallback>
             </Avatar>
             <Button variant="outline" size="sm" type="button">
-              Change Avatar
+              {t("Profile.change_avatar")}
             </Button>
           </div>
 
@@ -57,12 +59,12 @@ export function ProfileForm({ user }: ProfileFormProps) {
             <Label htmlFor="email">Email</Label>
             <Input id="email" value={user.email || ""} disabled />
             <p className="text-xs text-muted-foreground">
-              Email cannot be changed directly.
+              {t("Profile.email_cannot_be_changed_directly")}
             </p>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="name">Display Name</Label>
+            <Label htmlFor="name">{t("Profile.display_name")}</Label>
             <Input id="name" placeholder="Your name" />
           </div>
         </CardContent>
@@ -70,7 +72,7 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
       <div className="flex justify-end">
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save Changes"}
+          {isLoading ? t("Profile.saving") : t("Profile.save_changes")}
         </Button>
       </div>
     </form>

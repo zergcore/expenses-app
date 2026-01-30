@@ -37,12 +37,20 @@ export default async function ExpensesPage({
   const totalBudget = budgets.reduce((acc, b) => acc + b.amount, 0);
   const totalBudgetSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
 
+  const hasGlobalBudget = budgets.some((b) => b.category_id === null);
+  const budgetedCategoryIds = budgets
+    .map((b) => b.category_id)
+    .filter((id): id is string => id !== null);
+
   return (
     <ExpenseChartProvider
       totalBudget={totalBudget}
       budgetSpent={totalBudgetSpent}
       totalExpenses={totalAmount}
       currency="USD"
+      initialExpenses={expenses}
+      hasGlobalBudget={hasGlobalBudget}
+      budgetedCategoryIds={budgetedCategoryIds}
     >
       <div className="space-y-4">
         {/* Header section */}
@@ -72,11 +80,7 @@ export default async function ExpensesPage({
         {totalBudget > 0 && <KPIHeader />}
 
         {/* Full-width Expense Table */}
-        <ExpensesClient
-          expenses={expenses}
-          categories={categories}
-          totalAmount={totalAmount}
-        />
+        <ExpensesClient categories={categories} />
       </div>
     </ExpenseChartProvider>
   );
