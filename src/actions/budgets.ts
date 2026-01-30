@@ -6,21 +6,23 @@ import { z } from "zod";
 import { endOfMonth, startOfMonth } from "date-fns";
 import { getExchangeRates } from "@/actions/rates";
 
+// --- Types ---
 export type Budget = {
   id: string;
   amount: number;
-  period: string; // 'monthly'
+  period: string;
   category_id: string | null;
   category: {
     name: string;
     icon: string | null;
     color: string | null;
   } | null;
-  currency: string; // 'USD', 'VES', 'USDT'
-  spent: number; // Calculated field
-  progress: number; // Calculated %
+  currency: string;
+  spent: number;
+  progress: number;
 };
 
+// Simplified schema for reuse
 const budgetSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   category_id: z.string().optional().nullable(),
@@ -34,6 +36,35 @@ export type ActionState = {
   success?: boolean;
 };
 
+// --- Helpers ---
+
+// Moved outside to avoid recreation on every request,
+// though passing rates in is necessary.
+const convertCurrency = (
+  amount: number,
+  from: string,
+  to: string,
+  rates: { usdToVes: number; usdtToVes: number },
+): number => {
+  if (from === to || amount === 0) return amount;
+  const { usdToVes, usdtToVes } = rates;
+
+  // Normalized conversion to VES (Pivot)
+  let amountInVes = 0;
+  if (from === "VES" || from === "VED") amountInVes = amount;
+  else if (from === "USD") amountInVes = amount * usdToVes;
+  else if (from === "USDT") amountInVes = amount * usdtToVes;
+
+  // Convert VES to Target
+  if (to === "VES" || to === "VED") return amountInVes;
+  if (to === "USD") return usdToVes > 0 ? amountInVes / usdToVes : 0;
+  if (to === "USDT") return usdtToVes > 0 ? amountInVes / usdtToVes : 0;
+
+  return amount;
+};
+
+// --- Main Actions ---
+
 export async function getBudgets(): Promise<Budget[]> {
   const supabase = await createClient();
   const {
@@ -42,117 +73,89 @@ export async function getBudgets(): Promise<Budget[]> {
 
   if (!user) return [];
 
-  // 1. Fetch Budgets & Rates in parallel
-  const [budgetsRes, rates] = await Promise.all([
-    supabase
-      .from("budgets")
-      .select(
-        `
-      id,
-      amount,
-      period,
-      category_id,
-      currency,
-      category:categories (
-        name,
-        icon,
-        color
-      )
-    `
-      )
-      .eq("user_id", user.id),
-    getExchangeRates(),
-  ]);
-
-  if (budgetsRes.error) {
-    console.error("Error fetching budgets:", budgetsRes.error);
-    throw new Error("Failed to fetch budgets");
-  }
-
-  // Helper to get rate value
-  const getRateValue = (pair: string): number => {
-    const r = rates.find((rate) => rate.pair === pair);
-    return r ? r.value : 0;
-  };
-
-  const usdToVes = getRateValue("USD / VED");
-  const usdtToVes = getRateValue("USDT / USD"); // Actually USDT -> VES rate in our modified action
-  // Note: "USDT / USD" relies on the `value` field which we set to the VES price in rates.ts
-  // Wait, let's verify `rates.ts` logic.
-  // In `rates.ts`:
-  // pair: "USDT / USD", value: usdtVes (which is Bs per USDT from Binance)
-  // pair: "USD / VED", value: usdVes (which is Bs per USD from BCV)
-
-  const convertToBudget = (
-    amount: number,
-    from: string,
-    to: string
-  ): number => {
-    if (from === to) return amount;
-
-    if (to === "VES" || to === "VED") {
-      if (from === "USD") return amount * usdToVes;
-      if (from === "USDT") return amount * usdtToVes;
-    }
-
-    if (to === "USD") {
-      if (from === "VES" || from === "VED")
-        return usdToVes > 0 ? amount / usdToVes : 0;
-      if (from === "USDT")
-        return usdToVes > 0 ? (amount * usdtToVes) / usdToVes : amount;
-    }
-
-    if (to === "USDT") {
-      if (from === "VES" || from === "VED")
-        return usdtToVes > 0 ? amount / usdtToVes : 0;
-      if (from === "USD")
-        return usdtToVes > 0 ? (amount * usdToVes) / usdtToVes : amount;
-    }
-
-    return amount; // Fallback
-  };
-
-  // 2. Fetch Expenses for Current Month to calculate execution
   const now = new Date();
   const start = startOfMonth(now).toISOString();
   const end = endOfMonth(now).toISOString();
 
-  const { data: expensesData, error: expensesError } = await supabase
-    .from("expenses")
-    .select("amount, category_id, currency")
-    .eq("user_id", user.id)
-    .gte("date", start)
-    .lte("date", end);
+  // 1. Optimization: Parallel Fetching
+  // We fetch Budgets, Rates, AND Expenses simultaneously.
+  const [budgetsRes, rates, expensesRes] = await Promise.all([
+    supabase
+      .from("budgets")
+      .select(
+        `
+        id, amount, period, category_id, currency,
+        category:categories (name, icon, color)
+      `,
+      )
+      .eq("user_id", user.id),
+    getExchangeRates(),
+    supabase
+      .from("expenses")
+      .select("amount, category_id, currency")
+      .eq("user_id", user.id)
+      .gte("date", start)
+      .lte("date", end),
+  ]);
 
-  if (expensesError) {
-    console.error("Error fetching budget expenses:", expensesError);
+  if (budgetsRes.error) throw new Error("Failed to fetch budgets");
+  if (expensesRes.error)
+    console.error("Error fetching expenses:", expensesRes.error);
+
+  const rawBudgets = budgetsRes.data || [];
+  const expenses = expensesRes.data || [];
+
+  // 2. Prepare Rates
+  const getRate = (pair: string) =>
+    rates.find((r) => r.pair === pair)?.value ?? 0;
+  const rateMap = {
+    usdToVes: getRate("USD / VED"),
+    usdtToVes: getRate("USDT / USD"), // Assuming this maps correctly based on your previous logic
+  };
+
+  // 3. Optimization: Pre-aggregate Expenses by Category & Currency
+  // Data Structure: { [categoryId]: { [currency]: totalAmount } }
+  // Key "all" stores the global total for budgets with no category (General Budgets)
+  const spendingMap: Record<string, Record<string, number>> = {
+    all: {}, // Global accumulator
+  };
+
+  for (const exp of expenses) {
+    const catId = exp.category_id || "uncategorized";
+    const cur = exp.currency || "USD";
+
+    // Initialize maps if missing
+    if (!spendingMap[catId]) spendingMap[catId] = {};
+    if (!spendingMap.all[cur]) spendingMap.all[cur] = 0;
+    if (!spendingMap[catId][cur]) spendingMap[catId][cur] = 0;
+
+    // Add to specific category bucket
+    spendingMap[catId][cur] += exp.amount;
+
+    // Add to global bucket (for budgets that track everything)
+    spendingMap.all[cur] += exp.amount;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const expenses = (expensesData as any[]) || [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rawBudgets = (budgetsRes.data as any[]) || [];
-
-  // 3. Map and Calculate
+  // 4. Map Budgets & Calculate using Pre-aggregated sums
   const budgets: Budget[] = rawBudgets.map((b) => {
-    let spent = 0;
     const budgetCurrency = b.currency || "USD";
+    let spent = 0;
 
-    // Filter relevant expenses strictly by category?
-    const relevantExpenses = b.category_id
-      ? expenses.filter((e) => e.category_id === b.category_id)
-      : expenses;
+    // Determine which bucket of expenses to look at
+    // If budget has a category, use that. If not, use 'all'.
+    const targetMap = b.category_id
+      ? spendingMap[b.category_id]
+      : spendingMap.all;
 
-    // Sum converted amounts
-    spent = relevantExpenses.reduce((acc, curr) => {
-      const converted = convertToBudget(
-        curr.amount,
-        curr.currency || "USD",
-        budgetCurrency
-      );
-      return acc + converted;
-    }, 0);
+    if (targetMap) {
+      // Sum up the pre-calculated totals for each currency found in this bucket
+      for (const [currency, amount] of Object.entries(targetMap)) {
+        spent += convertCurrency(amount, currency, budgetCurrency, rateMap);
+      }
+    }
 
+    // Safety: Max progress visually is usually 100, but logic might need >100 to show overspending.
+    // Kept your logic (capped at 100) for consistency, but usually >100 is useful UI data.
     const progress = Math.min((spent / b.amount) * 100, 100);
 
     return {
@@ -160,11 +163,11 @@ export async function getBudgets(): Promise<Budget[]> {
       amount: b.amount,
       period: b.period,
       category_id: b.category_id,
-      category: b.category,
+      category: b.category, // Type assertion might be needed depending on DB types
+      currency: budgetCurrency,
       spent,
       progress,
-      currency: budgetCurrency,
-    };
+    } as unknown as Budget;
   });
 
   return budgets;
@@ -172,16 +175,17 @@ export async function getBudgets(): Promise<Budget[]> {
 
 export async function createBudget(
   prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
 
+  // Handle "all" string from select inputs
+  const rawCatId = formData.get("category_id");
+  const category_id = rawCatId === "all" ? null : rawCatId;
+
   const rawData = {
     amount: formData.get("amount"),
-    category_id:
-      formData.get("category_id") === "all"
-        ? null
-        : formData.get("category_id"),
+    category_id,
     period: "monthly",
     currency: formData.get("currency") || "USD",
   };
@@ -199,9 +203,10 @@ export async function createBudget(
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  if (!user) return { error: "Unauthorized" };
+
+  // Optimization: No need to check for existing budgets if your UX allows multiples,
+  // but usually you want to prevent duplicates. (Skipped for brevity as per your original code)
 
   const { error } = await supabase.from("budgets").insert({
     user_id: user.id,
@@ -212,9 +217,7 @@ export async function createBudget(
     start_date: startOfMonth(new Date()).toISOString(),
   });
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   revalidatePath("/budgets");
   return { success: true };

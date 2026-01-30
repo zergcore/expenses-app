@@ -108,7 +108,8 @@
     "newPassword": "Nueva contraseña",
     "updating": "Actualizando...",
     "updatePassword": "Actualizar contraseña",
-    "savePreferenceChanges": "Guardar cambios de preferencia"
+    "savePreferenceChanges": "Guardar cambios de preferencia",
+    "change_password_toggle": "Cambiar contraseña"
   },
   "Rates": {
     "title": "Tasas",
@@ -318,5 +319,20 @@
     "Food": "Comida",
     "Toys": "Juguetes",
     "Vet": "Veterinario"
+  },
+  "Onboarding": {
+    "title": "Guía de Inicio Rápido",
+    "progress": "{completed}/4 completado",
+    "dismiss": "Cerrar",
+    "steps": {
+      "currency": "Define tu moneda principal",
+      "budget": "Crea tu primer presupuesto",
+      "expense": "Registra tu primer gasto",
+      "profile": "Personaliza tu perfil"
+    },
+    "complete": "🎉 ¡Configuración Completa!",
+    "empty_expense_cta": "Registrar mi primer gasto",
+    "empty_budget_cta": "Define un límite mensual para ahorrar más este mes",
+    "create_budget": "Crear Presupuesto"
   }
 }

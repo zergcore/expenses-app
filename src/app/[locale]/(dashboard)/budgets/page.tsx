@@ -4,8 +4,10 @@ import { BudgetCard } from "@/components/budgets/budget-card";
 import { BudgetForm } from "@/components/budgets/budget-form";
 import { BudgetsTitle } from "@/components/budgets/budgets-title";
 import { NoBudgets } from "@/components/budgets/no-budgets";
+import { getLocale } from "next-intl/server";
 
 export default async function BudgetsPage() {
+  const locale = await getLocale();
   // Parallel fetching using Server Actions
   const [budgets, categories] = await Promise.all([
     getBudgets(),
@@ -25,7 +27,7 @@ export default async function BudgetsPage() {
             <BudgetCard key={budget.id} budget={budget} />
           ))
         ) : (
-          <NoBudgets />
+          <NoBudgets locale={locale} />
         )}
       </div>
     </div>

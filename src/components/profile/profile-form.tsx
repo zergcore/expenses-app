@@ -65,7 +65,11 @@ export function ProfileForm({ user }: ProfileFormProps) {
 
           <div className="grid gap-2">
             <Label htmlFor="name">{t("Profile.display_name")}</Label>
-            <Input id="name" placeholder="Your name" />
+            <Input
+              id="name"
+              defaultValue={user.email?.split("@")[0] || ""}
+              placeholder="Your name"
+            />
           </div>
         </CardContent>
       </Card>

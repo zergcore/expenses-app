@@ -5,38 +5,39 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createNotification } from "./notifications";
 
-// Helper to check budget limits
+// --- Helper Functions ---
+
 async function checkBudgetLimits(userId: string, categoryId: string | null) {
-  if (!categoryId) return; // General budget not implemented yet for specific check? Or check global?
-  // Let's check specific category budget first.
+  if (!categoryId) return;
 
   const supabase = await createClient();
-
-  // Get budget for this category
-  const { data: budget } = await supabase
-    .from("budgets")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("category_id", categoryId)
-    .single();
-
-  if (!budget) return;
-
-  // Calculate total spent for this category (current month) (re-using logic or simple query?)
-  // We need to query expenses again to be sure of current total.
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
 
-  const { data: expenses } = await supabase
-    .from("expenses")
-    .select("amount")
-    .eq("user_id", userId)
-    .eq("category_id", categoryId)
-    .gte("date", start)
-    .lte("date", end);
+  const [budgetRes, expensesRes] = await Promise.all([
+    supabase
+      .from("budgets")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("category_id", categoryId)
+      .single(),
+    supabase
+      .from("expenses")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("category_id", categoryId)
+      .gte("date", start)
+      .lte("date", end),
+  ]);
 
-  const spent = (expenses || []).reduce((acc, curr) => acc + curr.amount, 0);
+  const budget = budgetRes.data;
+  if (!budget) return;
+
+  const spent = (expensesRes.data || []).reduce(
+    (acc, curr) => acc + curr.amount,
+    0,
+  );
   const percentage = (spent / budget.amount) * 100;
 
   if (percentage >= 100) {
@@ -44,21 +45,19 @@ async function checkBudgetLimits(userId: string, categoryId: string | null) {
       userId,
       "budget_alert",
       "Budget Exceeded",
-      `You have exceeded your budget for this category. Spent: $${spent.toFixed(
-        2,
-      )} / $${budget.amount}`,
+      `You have exceeded your budget. Spent: $${spent.toFixed(2)} / $${budget.amount}`,
     );
   } else if (percentage >= 80) {
     await createNotification(
       userId,
       "budget_alert",
       "Approaching Limit",
-      `You have used ${Math.round(
-        percentage,
-      )}% of your budget for this category.`,
+      `You have used ${Math.round(percentage)}% of your budget.`,
     );
   }
 }
+
+// --- Types & Schemas ---
 
 export type Expense = {
   id: string;
@@ -75,8 +74,8 @@ export type Expense = {
   category_id: string | null;
 };
 
-// Internal interface for the raw Supabase response to fix "implicit any"
-interface RawExpenseResponse {
+// Internal type for Supabase response in getExpenses
+type RawExpenseResponse = {
   id: string;
   amount: number;
   currency: string;
@@ -89,7 +88,23 @@ interface RawExpenseResponse {
     color: string | null;
     is_default: boolean;
   } | null;
-}
+};
+
+const expenseSchema = z.object({
+  amount: z.coerce.number().positive("Amount must be positive"),
+  currency: z.enum(["USD", "VES", "USDT"]),
+  date: z.string(),
+  category_id: z.string().optional().nullable(),
+  description: z.string().optional(),
+});
+
+export type ActionState = {
+  error?: string;
+  errors?: Record<string, string[]>;
+  success?: boolean;
+};
+
+// --- Actions ---
 
 export async function getExpenses(
   page: number = 1,
@@ -105,38 +120,23 @@ export async function getExpenses(
   if (!user) return { data: [], count: 0 };
 
   const offset = (page - 1) * limit;
-
-  let query = supabase
-    .from("expenses")
-    .select(
-      `
-      id,
-      amount,
-      currency,
-      description,
-      date,
-      category_id,
-      category:categories (
-        name,
-        icon,
-        color,
-        is_default
-      )
-    `,
-      { count: "exact" },
-    )
-    .eq("user_id", user.id);
-
   const targetYear = year ?? new Date().getFullYear();
-  const targetMonth = month ?? new Date().getMonth(); // 0-indexed
-
-  // Calculate start/end of the target month
+  const targetMonth = month ?? new Date().getMonth();
   const start = new Date(targetYear, targetMonth, 1).toISOString();
   const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
 
-  query = query.gte("date", start).lte("date", end);
-
-  const { data, count, error } = await query
+  const { data, count, error } = await supabase
+    .from("expenses")
+    .select(
+      `
+      id, amount, currency, description, date, category_id,
+      category:categories (name, icon, color, is_default)
+    `,
+      { count: "exact" },
+    )
+    .eq("user_id", user.id)
+    .gte("date", start)
+    .lte("date", end)
     .order("date", { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -145,31 +145,12 @@ export async function getExpenses(
     throw new Error("Failed to fetch expenses");
   }
 
-  // Cast the data to our raw type first to avoid any
+  // Use the internal type to cast safely without 'any'
   const rawData = (data as unknown as RawExpenseResponse[]) || [];
 
-  const expenses: Expense[] = rawData.map((item) => ({
-    id: item.id,
-    amount: item.amount,
-    currency: item.currency,
-    description: item.description,
-    date: item.date,
-    category_id: item.category_id,
-    category: item.category
-      ? {
-          name: item.category.name,
-          icon: item.category.icon,
-          color: item.category.color,
-          is_default: item.category.is_default,
-        }
-      : null,
-  }));
-
-  return { data: expenses, count: count || 0 };
+  return { data: rawData, count: count || 0 };
 }
 
-// Renamed to generic getExpenseTotal but kept old export name for now or refactor all usage?
-// Let's keep it clean: getExpenseTotal
 export async function getExpenseTotal(
   month?: number,
   year?: number,
@@ -181,29 +162,21 @@ export async function getExpenseTotal(
 
   if (!user) return 0;
 
-  const now = new Date();
-  const targetYear = year ?? now.getFullYear();
-  const targetMonth = month ?? now.getMonth();
-
+  const targetYear = year ?? new Date().getFullYear();
+  const targetMonth = month ?? new Date().getMonth();
   const start = new Date(targetYear, targetMonth, 1).toISOString();
   const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
 
   const { data, error } = await supabase
     .from("expenses")
-    .select("amount, currency")
+    .select("amount")
     .eq("user_id", user.id)
     .gte("date", start)
     .lte("date", end);
 
-  if (error) {
-    console.error("Error calculating total:", error);
-    return 0;
-  }
+  if (error) return 0;
 
-  // Calculate total (assuming USD for simplicity or 1:1 for now, as currency conversion is complex)
-  const total = (data || []).reduce((acc, curr) => acc + curr.amount, 0);
-
-  return total;
+  return (data || []).reduce((acc, curr) => acc + curr.amount, 0);
 }
 
 export type CategorySpending = {
@@ -217,6 +190,13 @@ export type CategorySpending = {
   percentage: number;
 };
 
+type Category = {
+  name: string;
+  icon: string | null;
+  color: string | null;
+  is_default: boolean;
+};
+
 export async function getSpendingByCategory(
   month?: number,
   year?: number,
@@ -228,81 +208,51 @@ export async function getSpendingByCategory(
 
   if (!user) return [];
 
-  const now = new Date();
-  const targetYear = year ?? now.getFullYear();
-  const targetMonth = month ?? now.getMonth();
-
+  const targetYear = year ?? new Date().getFullYear();
+  const targetMonth = month ?? new Date().getMonth();
   const start = new Date(targetYear, targetMonth, 1).toISOString();
   const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
 
-  // Fetch all expenses for the period with category details
   const { data, error } = await supabase
     .from("expenses")
     .select(
       `
       amount,
-      category:categories (
-        name,
-        icon,
-        color,
-        is_default
-      )
+      category:categories (name, icon, color, is_default)
     `,
     )
     .eq("user_id", user.id)
     .gte("date", start)
     .lte("date", end);
 
-  if (error) {
-    console.error("Error fetching spending by category:", error);
-    return [];
-  }
+  if (error || !data || data.length === 0) return [];
 
-  // Type the raw response explicitly to rely on single object relation
-  type RawSpending = {
+  const grouped = new Map<
+    string,
+    { category: Category | null; amount: number }
+  >();
+  let total = 0;
+
+  type RawExpense = {
     amount: number;
-    category: {
-      name: string;
-      icon: string | null;
-      color: string | null;
-      is_default: boolean;
-    } | null;
+    category: Category | null;
   };
 
-  const expenses = (data as unknown as RawSpending[]) || [];
-  const total = expenses.reduce((acc, curr) => acc + curr.amount, 0);
+  (data as unknown as RawExpense[]).forEach((item) => {
+    total += item.amount;
+    const key = item.category?.name || "Uncategorized";
+
+    if (!grouped.has(key)) {
+      grouped.set(key, { category: item.category, amount: 0 });
+    }
+
+    const entry = grouped.get(key)!;
+    entry.amount += item.amount;
+  });
 
   if (total === 0) return [];
 
-  // Group by category name (or ID if we had it easily available in this shape, but name is fine for display)
-  // Actually, we should group by category object contents.
-  type GroupedCategory = {
-    category: {
-      name: string;
-      icon: string | null;
-      color: string | null;
-      is_default: boolean;
-    } | null;
-    amount: number;
-  };
-
-  const grouped = expenses.reduce<Record<string, GroupedCategory>>(
-    (acc, curr) => {
-      const key = curr.category?.name || "Uncategorized";
-      if (!acc[key]) {
-        acc[key] = {
-          category: curr.category,
-          amount: 0,
-        };
-      }
-      acc[key].amount += curr.amount;
-      return acc;
-    },
-    {},
-  );
-
-  // Convert to array and calculate percentage
-  return Object.values(grouped)
+  return Array.from(grouped.values())
     .map((item) => ({
       category: item.category,
       amount: item.amount,
@@ -310,20 +260,6 @@ export async function getSpendingByCategory(
     }))
     .sort((a, b) => b.amount - a.amount);
 }
-
-const expenseSchema = z.object({
-  amount: z.coerce.number().positive("Amount must be positive"),
-  currency: z.enum(["USD", "VES", "USDT"]),
-  date: z.string(),
-  category_id: z.string().optional().nullable(),
-  description: z.string().optional(),
-});
-
-export type ActionState = {
-  error?: string;
-  errors?: Record<string, string[]>;
-  success?: boolean;
-};
 
 export async function createExpense(
   prevState: ActionState,
@@ -343,7 +279,6 @@ export async function createExpense(
   };
 
   const validated = expenseSchema.safeParse(rawData);
-
   if (!validated.success) {
     return {
       error: "Invalid input",
@@ -354,33 +289,21 @@ export async function createExpense(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  if (!user) return { error: "Unauthorized" };
 
   const { error } = await supabase.from("expenses").insert({
     user_id: user.id,
-    amount: validated.data.amount,
-    currency: validated.data.currency,
-    date: validated.data.date,
-    category_id: validated.data.category_id,
-    description: validated.data.description,
+    ...validated.data,
   });
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
-  // Check budget limits asynchronously (fire and forget pattern or await?)
-  // Await to ensure it runs, but don't block UI strictly if it fails?
-  // Server actions must return, so await is safer.
   if (validated.data.category_id) {
     await checkBudgetLimits(user.id, validated.data.category_id);
   }
 
   revalidatePath("/expenses");
-  revalidatePath("/"); // Dashboard summary might change
+  revalidatePath("/");
   revalidatePath("/budgets");
   return { success: true };
 }
@@ -404,37 +327,20 @@ export async function updateExpense(
   };
 
   const validated = expenseSchema.safeParse(rawData);
-
-  if (!validated.success) {
-    return {
-      error: "Invalid input",
-      errors: validated.error.flatten().fieldErrors,
-    };
-  }
+  if (!validated.success) return { error: "Invalid input" };
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Unauthorized" };
-  }
+  if (!user) return { error: "Unauthorized" };
 
   const { error } = await supabase
     .from("expenses")
-    .update({
-      amount: validated.data.amount,
-      currency: validated.data.currency,
-      date: validated.data.date,
-      category_id: validated.data.category_id,
-      description: validated.data.description,
-    })
+    .update(validated.data)
     .eq("id", id)
     .eq("user_id", user.id);
 
-  if (error) {
-    return { error: error.message };
-  }
+  if (error) return { error: error.message };
 
   if (validated.data.category_id) {
     await checkBudgetLimits(user.id, validated.data.category_id);
@@ -451,38 +357,38 @@ export async function deleteExpense(id: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
+  if (!user) throw new Error("Unauthorized");
 
   const { error } = await supabase
     .from("expenses")
     .delete()
     .eq("id", id)
     .eq("user_id", user.id);
-
   if (error) throw error;
+
   revalidatePath("/expenses");
   revalidatePath("/");
   revalidatePath("/budgets");
 }
 
-export async function getAllExpensesForExport(
-  month?: number,
-  year?: number,
-): Promise<
-  {
-    date: string;
-    category: string;
-    description: string;
-    amount: number;
-    currency: string;
-    budget_name: string;
-    budget_amount: number | string;
-    budget_currency: string;
-  }[]
-> {
+// -- Export function types --
+type RawExportExpense = {
+  amount: number;
+  currency: string;
+  description: string | null;
+  date: string;
+  category_id: string | null;
+  category: { name: string } | null;
+};
+
+type RawExportBudget = {
+  amount: number;
+  currency: string;
+  category_id: string | null;
+  category: { name: string } | null;
+};
+
+export async function getAllExpensesForExport(month?: number, year?: number) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -490,74 +396,44 @@ export async function getAllExpensesForExport(
 
   if (!user) return [];
 
-  // Re-use fetching logic somewhat or just fetch fresh
   const targetYear = year ?? new Date().getFullYear();
   const targetMonth = month ?? new Date().getMonth();
-
   const start = new Date(targetYear, targetMonth, 1).toISOString();
   const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
 
-  // 1. Fetch Expenses
-  const { data: expensesData, error } = await supabase
-    .from("expenses")
-    .select(
-      `
-      amount,
-      currency,
-      description,
-      date,
-      category_id,
-      category:categories (
-        name,
-        icon,
-        color,
-        is_default
+  const [expensesRes, budgetsRes] = await Promise.all([
+    supabase
+      .from("expenses")
+      .select(
+        `
+        amount, currency, description, date, category_id,
+        category:categories (name)
+      `,
       )
-    `,
-    )
-    .eq("user_id", user.id)
-    .gte("date", start)
-    .lte("date", end)
-    .order("date", { ascending: false });
+      .eq("user_id", user.id)
+      .gte("date", start)
+      .lte("date", end)
+      .order("date", { ascending: false }),
 
-  if (error) {
-    console.error("Error fetching expenses for export:", error);
-    return [];
-  }
-
-  // 2. Fetch Budgets with Category Name
-  const { data: budgetsData } = await supabase
-    .from("budgets")
-    .select(
-      `
-      amount, 
-      currency, 
-      category_id,
-      category:categories (
-        name
+    supabase
+      .from("budgets")
+      .select(
+        `
+        amount, currency, category_id,
+        category:categories (name)
+      `,
       )
-    `,
-    )
-    .eq("user_id", user.id);
+      .eq("user_id", user.id),
+  ]);
 
-  // Type assertion
-  type RawBudget = {
-    amount: number;
-    currency: string;
-    category_id: string | null;
-    category: { name: string } | null;
-  };
-  const budgets = (budgetsData as unknown as RawBudget[]) || [];
+  // Cast strictly here using our defined types
+  const expenses = (expensesRes.data as unknown as RawExportExpense[]) || [];
+  const budgets = (budgetsRes.data as unknown as RawExportBudget[]) || [];
 
-  // Helper to find budget
-  const findBudget = (categoryId: string | null) => {
-    return budgets.find((b) => b.category_id === categoryId);
-  };
+  const budgetMap = new Map(budgets.map((b) => [b.category_id, b]));
 
-  // 3. Map to flat structure
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (expensesData as any[]).map((expense) => {
-    const budget = findBudget(expense.category_id);
+  return expenses.map((expense) => {
+    const budget = budgetMap.get(expense.category_id);
     return {
       date: expense.date,
       category: expense.category?.name || "Uncategorized",

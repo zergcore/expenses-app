@@ -1,5 +1,9 @@
 "use client";
 
+import { useTheme } from "next-themes";
+import { useTranslations } from "next-intl";
+import { toast } from "sonner";
+
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,7 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RadioGroup } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -17,43 +21,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from "sonner";
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { PasswordUpdateForm } from "./password-update-form";
+import { Skeleton } from "../ui/skeleton";
+import { useSyncExternalStore } from "react";
+import { ThemeOption } from "./theme-option";
 
-import { Input } from "@/components/ui/input";
-import { changePassword } from "@/actions/auth";
-import { useActionState } from "react";
-import { useTranslations } from "next-intl";
+const emptySubscribe = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+function useMounted() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    getClientSnapshot,
+    getServerSnapshot,
+  );
+}
 
 export function SettingsForm() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const t = useTranslations();
-  const [passwordState, passwordAction, isPasswordPending] = useActionState(
-    changePassword,
-    {},
-  );
-
-  useEffect(() => {
-    // Use setTimeout to avoid synchronous state update warning during effect
-    const timer = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
-
-  useEffect(() => {
-    if (passwordState?.success) {
-      toast.success("Password updated successfully");
-    } else if (passwordState?.error) {
-      toast.error(passwordState.error);
-    }
-  }, [passwordState]);
 
   const handleSave = () => {
+    // todo: In a real app, this should likely trigger a Server Action or API call
     toast.success("Settings saved successfully");
   };
-
-  if (!mounted) return null; // Avoid hydration mismatch on initial load
 
   return (
     <div className="space-y-6">
@@ -82,52 +74,26 @@ export function SettingsForm() {
 
           <div className="space-y-2">
             <Label>{t("Settings.theme")}</Label>
-            <RadioGroup
-              defaultValue={theme}
-              onValueChange={(value) => setTheme(value)}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="light" id="light" />
-                <Label htmlFor="light">{t("Settings.light")}</Label>
+            {mounted ? (
+              <RadioGroup
+                value={theme}
+                onValueChange={setTheme}
+                className="flex gap-4"
+              >
+                <ThemeOption id="light" label={t("Settings.light")} />
+                <ThemeOption id="dark" label={t("Settings.dark")} />
+                <ThemeOption id="system" label={t("Settings.system")} />
+              </RadioGroup>
+            ) : (
+              <div className="flex gap-4">
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-5 w-20" />
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="dark" id="dark" />
-                <Label htmlFor="dark">{t("Settings.dark")}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="system" id="system" />
-                <Label htmlFor="system">{t("Settings.system")}</Label>
-              </div>
-            </RadioGroup>
+            )}
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("Settings.security")}</CardTitle>
-          <CardDescription>{t("Settings.securityDescription")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={passwordAction} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("Settings.newPassword")}</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                minLength={6}
-                placeholder="••••••••"
-              />
-            </div>
-            <Button type="submit" disabled={isPasswordPending}>
-              {isPasswordPending
-                ? t("Settings.updating")
-                : t("Settings.updatePassword")}
-            </Button>
-          </form>
+          <PasswordUpdateForm />
         </CardContent>
       </Card>
 

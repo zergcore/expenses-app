@@ -105,7 +105,8 @@
     "newPassword": "New Password",
     "updating": "Updating...",
     "updatePassword": "Update Password",
-    "savePreferenceChanges": "Save Preference Changes"
+    "savePreferenceChanges": "Save Preference Changes",
+    "change_password_toggle": "Change password"
   },
   "Rates": {
     "title": "Rates",
@@ -307,5 +308,20 @@
     "Food": "Food",
     "Toys": "Toys",
     "Vet": "Vet"
+  },
+  "Onboarding": {
+    "title": "Quick Start Guide",
+    "progress": "{completed}/4 completed",
+    "dismiss": "Dismiss",
+    "steps": {
+      "currency": "Set your main currency",
+      "budget": "Create your first budget",
+      "expense": "Record your first expense",
+      "profile": "Personalize your profile"
+    },
+    "complete": "🎉 Setup Complete!",
+    "empty_expense_cta": "Record my first expense",
+    "empty_budget_cta": "Set a monthly limit to save more this month",
+    "create_budget": "Create Budget"
   }
 }
