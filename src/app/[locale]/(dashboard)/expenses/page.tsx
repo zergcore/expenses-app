@@ -9,6 +9,7 @@ import { KPIHeader } from "@/components/expenses/kpi-header";
 import { ExpenseChartProvider } from "@/components/expenses/expense-chart/expense-chart-context";
 import { ExportExpensesButton } from "@/components/expenses/export-expenses-button";
 import { ExpensesTitle } from "@/components/expenses/expenses-title";
+import { ReceiptScanner } from "@/components/receipts/receipt-scanner";
 
 interface ExpensesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -58,8 +59,9 @@ export default async function ExpensesPage({
           {/* Title row with primary action */}
           <div className="flex items-start justify-between gap-4">
             <ExpensesTitle />
-            {/* Primary action always visible */}
-            <div className="hidden sm:block">
+            {/* Primary actions always visible on desktop */}
+            <div className="hidden sm:flex items-center gap-2">
+              <ReceiptScanner categories={categoryTree} />
               <ExpenseForm categories={categoryTree} />
             </div>
           </div>
@@ -69,7 +71,9 @@ export default async function ExpensesPage({
             <MonthSelector />
             <div className="flex items-center gap-2 ml-auto">
               <ExportExpensesButton />
-              <div className="sm:hidden">
+              {/* Mobile: show both buttons */}
+              <div className="sm:hidden flex items-center gap-2">
+                <ReceiptScanner categories={categoryTree} />
                 <ExpenseForm categories={categoryTree} />
               </div>
             </div>

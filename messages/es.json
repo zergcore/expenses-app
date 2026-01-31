@@ -230,7 +230,15 @@
     "days_passed": "días transcurridos",
     "needs_category": "necesita categorización",
     "all_categorized": "Todos los gastos categorizados",
-    "uncategorized": "No categorizado"
+    "uncategorized": "No categorizado",
+    "generating_export": "Generando exportación...",
+    "export_downloaded_successfully": "Exportación descargada exitosamente!",
+    "failed_to_export_expenses": "Error al exportar gastos.",
+    "something_went_wrong_exporting_expenses": "Algo salió mal al exportar gastos.",
+    "export_error": "Error de exportación:",
+    "no_expenses_to_export": "No hay gastos para exportar para este periodo.",
+    "budget_amount": "Monto de presupuesto",
+    "budget_currency": "Moneda de presupuesto"
   },
   "Nav": {
     "dashboard": "Inicio",
@@ -334,5 +342,28 @@
     "empty_expense_cta": "Registrar mi primer gasto",
     "empty_budget_cta": "Define un límite mensual para ahorrar más este mes",
     "create_budget": "Crear Presupuesto"
+  },
+  "ReceiptScanner": {
+    "scanReceipt": "Escanear Recibo",
+    "confirmExpense": "Confirmar Gasto",
+    "verifyExtractedDetails": "Verifica los datos extraídos.",
+    "uploadReceipt": "Sube un recibo para extraer datos automáticamente.",
+    "compressing": "Comprimiendo",
+    "uploading": "Subiendo",
+    "scanning": "Escaneando",
+    "upload": "Subir",
+    "camera": "Cámara"
+  },
+  "ReceiptReviewForm": {
+    "cancel": "Cancelar",
+    "capture": "Capturar",
+    "createExpense": "Crear Gasto",
+    "amount": "Monto",
+    "currency": "Moneda",
+    "category": "Categoría",
+    "note": "Nota",
+    "date": "Fecha",
+    "match": "Coincidencia",
+    "positionReceipt": "Posiciona tu recibo en el cuadro"
   }
 }

@@ -131,7 +131,8 @@
     "used": "Used",
     "select_category": "Select category",
     "budget_created_successfully": "Budget created successfully",
-    "global": "Global (All Expenses)"
+    "global": "Global (All Expenses)",
+    "global_budget": "Global Budget"
   },
   "Categories": {
     "title": "Categories",
@@ -225,7 +226,16 @@
     "days_passed": "days passed",
     "needs_category": "needs categorization",
     "all_categorized": "All expenses categorized",
-    "uncategorized": "Uncategorized"
+    "uncategorized": "Uncategorized",
+    "export": "Export",
+    "generating_export": "Generating export...",
+    "export_downloaded_successfully": "Export downloaded successfully!",
+    "failed_to_export_expenses": "Failed to export expenses.",
+    "something_went_wrong_exporting_expenses": "Something went wrong exporting expenses.",
+    "export_error": "Export error:",
+    "no_expenses_to_export": "No expenses to export for this period.",
+    "budget_amount": "Budget Amount",
+    "budget_currency": "Budget Currency"
   },
   "Nav": {
     "dashboard": "Dashboard",
@@ -292,6 +302,7 @@
     "copied": "Copied!",
     "binance_p2p_avg": "Binance P2P Average",
     "bcv_avg": "Official BCV Average",
+    "bcv_official": "BCV Official",
     "coingecko": "Coingecko"
   },
   "CategoryNames": {
@@ -323,5 +334,28 @@
     "empty_expense_cta": "Record my first expense",
     "empty_budget_cta": "Set a monthly limit to save more this month",
     "create_budget": "Create Budget"
+  },
+  "ReceiptScanner": {
+    "scanReceipt": "Scan Receipt",
+    "confirmExpense": "Confirm Expense",
+    "verifyExtractedDetails": "Verify the extracted details.",
+    "uploadReceipt": "Upload a receipt to extract data automatically.",
+    "compressing": "Compressing",
+    "uploading": "Uploading",
+    "scanning": "Scanning",
+    "upload": "Upload",
+    "camera": "Camera"
+  },
+  "ReceiptReviewForm": {
+    "cancel": "Cancel",
+    "capture": "Capture",
+    "createExpense": "Create Expense",
+    "amount": "Amount",
+    "currency": "Currency",
+    "category": "Category",
+    "note": "Note",
+    "date": "Date",
+    "match": "Match",
+    "positionReceipt": "Position your receipt in the frame"
   }
 }
