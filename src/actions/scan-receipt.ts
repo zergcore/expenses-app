@@ -84,12 +84,13 @@ export async function scanReceipt(
       return { success: false, error: "Failed to create receipt record" };
     }
 
-    // Get the public URL for the image
-    const { data: urlData } = supabase.storage
+    // Get a signed URL for the image (works with private buckets)
+    const { data: signedUrlData, error: urlError } = await supabase.storage
       .from("receipts")
-      .getPublicUrl(imagePath);
+      .createSignedUrl(imagePath, 60 * 5); // 5 minute expiry
 
-    if (!urlData?.publicUrl) {
+    if (urlError || !signedUrlData?.signedUrl) {
+      console.error("Failed to create signed URL:", urlError);
       await supabase
         .from("receipts")
         .update({ status: "failed" })
@@ -99,18 +100,20 @@ export async function scanReceipt(
 
     // Call Gemini VLM to extract receipt data
     const { object: extractedData } = await generateObject({
-      model: google("gemini-1.5-flash"),
+      model: google("gemini-2.5-flash"),
       schema: receiptExtractionSchema,
       messages: [
         {
           role: "user",
           content: [
             { type: "text", text: buildExtractionPrompt() },
-            { type: "image", image: urlData.publicUrl },
+            { type: "image", image: signedUrlData.signedUrl },
           ],
         },
       ],
     });
+
+    console.log("Extracted data:", extractedData);
 
     // Update receipt with extracted data
     const { error: updateError } = await supabase

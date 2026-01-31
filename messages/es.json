@@ -352,7 +352,14 @@
     "uploading": "Subiendo",
     "scanning": "Escaneando",
     "upload": "Subir",
-    "camera": "Cámara"
+    "camera": "Cámara",
+    "uploadFailed": "Error al subir la imagen. Intenta de nuevo.",
+    "scanFailed": "No se pudo leer el recibo. Intenta con una imagen más clara.",
+    "scanSuccess": "¡Recibo escaneado exitosamente!",
+    "quotaExceeded": "Servicio temporalmente no disponible. Intenta en un minuto.",
+    "sessionExpired": "Tu sesión ha expirado. Inicia sesión de nuevo.",
+    "imageError": "Hubo un problema con la imagen. Intenta con otra.",
+    "processingFailed": "Algo salió mal. Intenta de nuevo."
   },
   "ReceiptReviewForm": {
     "cancel": "Cancelar",

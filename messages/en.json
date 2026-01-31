@@ -344,7 +344,14 @@
     "uploading": "Uploading",
     "scanning": "Scanning",
     "upload": "Upload",
-    "camera": "Camera"
+    "camera": "Camera",
+    "uploadFailed": "Failed to upload image. Please try again.",
+    "scanFailed": "Could not read the receipt. Please try a clearer image.",
+    "scanSuccess": "Receipt scanned successfully!",
+    "quotaExceeded": "Service temporarily unavailable. Please try again in a minute.",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "imageError": "There was a problem with the image. Please try another.",
+    "processingFailed": "Something went wrong. Please try again."
   },
   "ReceiptReviewForm": {
     "cancel": "Cancel",

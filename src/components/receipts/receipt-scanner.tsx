@@ -84,22 +84,44 @@ export function ReceiptScanner({
         .from("receipts")
         .upload(filename, compressedFile, { contentType: "image/webp" });
 
-      if (uploadError) throw new Error(uploadError.message);
+      if (uploadError) {
+        toast.error(t("uploadFailed"));
+        resetState();
+        return;
+      }
 
       setState("scanning");
       startTransition(async () => {
         const result = await scanReceipt(filename);
         if (!result.success || !result.extractedData) {
-          throw new Error(result.error || "Scan failed");
+          // Show user-friendly error based on the error message
+          const errorMsg = result.error?.toLowerCase() || "";
+          if (errorMsg.includes("quota") || errorMsg.includes("rate limit")) {
+            toast.error(t("quotaExceeded"));
+          } else if (errorMsg.includes("unauthorized")) {
+            toast.error(t("sessionExpired"));
+          } else if (errorMsg.includes("image") || errorMsg.includes("url")) {
+            toast.error(t("imageError"));
+          } else {
+            toast.error(t("scanFailed"));
+          }
+          resetState();
+          return;
         }
         setReceiptId(result.receiptId!);
         setExtractedData(result.extractedData);
         setState("review");
-        toast.success("Receipt scanned!");
+        toast.success(t("scanSuccess"));
       });
     } catch (error) {
       console.error(error);
-      toast.error("Failed to process receipt");
+      const errorMsg =
+        error instanceof Error ? error.message.toLowerCase() : "";
+      if (errorMsg.includes("quota") || errorMsg.includes("rate limit")) {
+        toast.error(t("quotaExceeded"));
+      } else {
+        toast.error(t("processingFailed"));
+      }
       resetState();
     }
   };
