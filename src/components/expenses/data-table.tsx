@@ -74,25 +74,25 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
   return (
     <div className="space-y-4">
       {/* Search and filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Search input */}
-        <div className="relative flex-1">
+      <div className="flex flex-col gap-3">
+        {/* Search input - full width on all screens for better UX */}
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("Expenses.search_expenses")}
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            className="pl-9 h-9"
+            className="pl-9 h-9 w-full"
           />
         </div>
 
-        {/* Category filter pills */}
+        {/* Category filter pills - scrollable on mobile */}
         {rootCategories.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-1">
             <Button
               variant={selectedCategory === null ? "default" : "outline"}
               size="sm"
-              className="h-8 text-xs"
+              className="h-8 text-xs shrink-0"
               onClick={() => handleCategoryFilter(null)}
             >
               {t("Expenses.all_categories")}
@@ -104,7 +104,7 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                   selectedCategory === category.id ? "default" : "outline"
                 }
                 size="sm"
-                className="h-8 text-xs gap-1.5"
+                className="h-8 text-xs gap-1.5 shrink-0"
                 onClick={() => handleCategoryFilter(category.id)}
               >
                 <span>{category.icon}</span>

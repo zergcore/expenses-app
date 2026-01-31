@@ -66,17 +66,20 @@ export default async function ExpensesPage({
             </div>
           </div>
 
-          {/* Controls row */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Month selector row */}
+          <div className="flex items-center">
             <MonthSelector />
-            <div className="flex items-center gap-2 ml-auto">
+            {/* Export on desktop next to calendar */}
+            <div className="hidden sm:block ml-auto">
               <ExportExpensesButton />
-              {/* Mobile: show both buttons */}
-              <div className="sm:hidden flex items-center gap-2">
-                <ReceiptScanner categories={categoryTree} />
-                <ExpenseForm categories={categoryTree} />
-              </div>
             </div>
+          </div>
+
+          {/* Mobile: Action buttons on separate row for full visibility */}
+          <div className="sm:hidden flex flex-wrap items-center gap-2">
+            <ExportExpensesButton />
+            <ReceiptScanner categories={categoryTree} />
+            <ExpenseForm categories={categoryTree} />
           </div>
         </div>
 
