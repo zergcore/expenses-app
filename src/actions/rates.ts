@@ -444,23 +444,33 @@ export interface RateHistoryPoint {
 }
 
 /**
- * Fetches historical rates for the current month for USD and USDT.
+ * Fetches historical rates for the specified month/year (defaults to current).
  * Returns data points grouped by day for charting.
  */
-export async function getMonthlyRateHistory(): Promise<RateHistoryPoint[]> {
+export async function getMonthlyRateHistory(
+  year?: number,
+  month?: number, // 1-12
+): Promise<RateHistoryPoint[]> {
   const supabase = await createClient();
   const now = new Date();
 
-  // Get first and last day of current month
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-  );
+  const targetYear = year || now.getFullYear();
+  const targetMonth = month ? month - 1 : now.getMonth(); // 0-11 for Date constructor
+
+  // Get first and last day of target month
+  const startOfMonth = new Date(targetYear, targetMonth, 1);
+  const endOfMonth = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
+
+  // Initialize map with all days in the month to ensure continuous chart
+  const dayMap = new Map<string, { usd: number | null; usdt: number | null }>();
+  const daysInMonth = endOfMonth.getDate();
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    const d = new Date(targetYear, targetMonth, i);
+    // Use local date string YYYY-MM-DD
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    dayMap.set(dateKey, { usd: null, usdt: null });
+  }
 
   // Fetch all rates for the month
   const { data, error } = await supabase
@@ -471,27 +481,25 @@ export async function getMonthlyRateHistory(): Promise<RateHistoryPoint[]> {
     .lte("fetched_at", endOfMonth.toISOString())
     .order("fetched_at", { ascending: true });
 
-  if (error || !data) {
+  if (error) {
     console.error("Failed to fetch rate history:", error);
     return [];
   }
 
-  // Group by day and take last rate of each day for each pair
-  const dayMap = new Map<string, { usd: number | null; usdt: number | null }>();
-
-  data.forEach((row) => {
-    const date = new Date(row.fetched_at).toISOString().split("T")[0];
+  // Merge DB data into dayMap
+  data?.forEach((row) => {
+    const fetchedDate = new Date(row.fetched_at);
+    // Use same formatting logic as initialization
+    const dateKey = `${fetchedDate.getFullYear()}-${String(fetchedDate.getMonth() + 1).padStart(2, "0")}-${String(fetchedDate.getDate()).padStart(2, "0")}`;
     const rate = parseFloat(row.rate);
 
-    if (!dayMap.has(date)) {
-      dayMap.set(date, { usd: null, usdt: null });
-    }
-
-    const dayData = dayMap.get(date)!;
-    if (row.pair === "USD_VES") {
-      dayData.usd = rate;
-    } else if (row.pair === "USDT_VES") {
-      dayData.usdt = rate;
+    if (dayMap.has(dateKey)) {
+      const dayData = dayMap.get(dateKey)!;
+      if (row.pair === "USD_VES") {
+        dayData.usd = rate;
+      } else if (row.pair === "USDT_VES") {
+        dayData.usdt = rate;
+      }
     }
   });
 
