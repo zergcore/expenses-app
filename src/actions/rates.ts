@@ -123,11 +123,11 @@ interface DolarVzlaResponse {
 }
 
 async function fetchBCVRates(): Promise<{
-  usd: number;
-  eur: number;
+  usd?: number;
+  eur?: number;
   usdChange?: number;
   eurChange?: number;
-}> {
+} | null> {
   const apiKey = process.env.DOLAR_VZLA_KEY;
 
   // Try dolarvzla.com API first (has both USD and EUR)
@@ -170,14 +170,10 @@ async function fetchBCVRates(): Promise<{
       usdPrice = data.promedio ?? data.price ?? 0;
     }
 
-    // Estimate EUR from USD using approximate EUR/USD rate (1 EUR ≈ 1.08 USD)
-    // This is a fallback when we can't get the official EUR rate
-    const eurEstimate = usdPrice > 0 ? usdPrice * 1.08 : 0;
-
-    return { usd: usdPrice, eur: eurEstimate };
+    return { usd: usdPrice };
   } catch (e) {
     console.error("BCV Fetch Error:", e);
-    return { usd: 0, eur: 0 };
+    return null;
   }
 }
 
@@ -316,7 +312,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
   else promises.push(Promise.resolve(null));
 
   if (needsFetch.bcv) promises.push(fetchBCVRates());
-  else promises.push(Promise.resolve({ usd: 0, eur: 0 }));
+  else promises.push(Promise.resolve(null));
 
   if (needsFetch.crypto) promises.push(fetchCryptoRates());
   else promises.push(Promise.resolve(null));
