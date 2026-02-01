@@ -561,12 +561,6 @@ export async function getCurrentRatesSnapshot(): Promise<RatesSnapshot> {
     }
   });
 
-  // Fallback: estimate EUR_VES from USD_VES if not available
-  // Using approximate EUR/USD rate of 1.08
-  if (rates.eur_ves === 0 && rates.usd_ves > 0) {
-    rates.eur_ves = rates.usd_ves * 1.08;
-  }
-
   // Calculate derived rates
   rates.usd_usdt = rates.usdt_ves > 0 ? rates.usd_ves / rates.usdt_ves : 0;
   rates.eur_usdt = rates.usdt_ves > 0 ? rates.eur_ves / rates.usdt_ves : 0;
