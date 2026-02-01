@@ -5,8 +5,15 @@ import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { X, Settings, PiggyBank, Receipt, User } from "lucide-react";
+import {
+  X,
+  Settings,
+  PiggyBank,
+  Receipt,
+  User as UserIcon,
+} from "lucide-react";
 import { StepItem } from "./step-item";
+import { User } from "@supabase/supabase-js";
 
 export interface OnboardingStep {
   id: "currency" | "budget" | "expense" | "profile";
@@ -18,6 +25,7 @@ interface OnboardingCardProps {
   locale: string;
   hasExpenses: boolean;
   hasBudgets: boolean;
+  user: User;
 }
 
 const STORAGE_KEY = "onboarding_progress";
@@ -27,6 +35,7 @@ export function OnboardingCard({
   locale,
   hasExpenses,
   hasBudgets,
+  user,
 }: OnboardingCardProps) {
   const t = useTranslations("Onboarding");
   const [isMounted, setIsMounted] = useState(false);
@@ -53,6 +62,16 @@ export function OnboardingCard({
     if (hasExpenses) newCompletions.add("expense");
     if (hasBudgets) newCompletions.add("budget");
 
+    // Check user metadata for currency and profile
+    if (user?.user_metadata?.currency) newCompletions.add("currency");
+
+    // Check profile: has avatar or name is different from email start
+    const hasAvatar = !!user?.user_metadata?.avatar_url;
+    const hasName =
+      user?.user_metadata?.full_name &&
+      user.user_metadata.full_name !== user.email?.split("@")[0];
+    if (hasAvatar || hasName) newCompletions.add("profile");
+
     // Only update if different to prevent loops
     if (newCompletions.size !== currentProgress.length) {
       const updated = Array.from(newCompletions) as string[];
@@ -61,7 +80,7 @@ export function OnboardingCard({
     } else {
       setCompletedSteps(currentProgress);
     }
-  }, [hasExpenses, hasBudgets]);
+  }, [hasExpenses, hasBudgets, user]);
 
   const steps: OnboardingStep[] = useMemo(
     () => [
@@ -82,7 +101,7 @@ export function OnboardingCard({
       },
       {
         id: "profile",
-        icon: <User className="h-4 w-4" />,
+        icon: <UserIcon className="h-4 w-4" />,
         href: `/${locale}/profile`,
       },
     ],
@@ -129,7 +148,7 @@ export function OnboardingCard({
   const isComplete = completedSteps.length === steps.length;
 
   return (
-    <Card className="border-amber-500/50 bg-gradient-to-br from-amber-500/5 to-amber-600/10 dark:from-amber-500/10 dark:to-amber-600/5">
+    <Card className="border-amber-500/50 bg-linear-to-br from-amber-500/5 to-amber-600/10 dark:from-amber-500/10 dark:to-amber-600/5">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-semibold flex items-center gap-2">
           {isComplete ? (

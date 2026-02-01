@@ -64,6 +64,7 @@ export default async function DashboardPage() {
         locale={locale}
         hasExpenses={hasExpenses}
         hasBudgets={hasBudgets}
+        user={user}
       />
 
       {/* AI Financial Advisor */}

@@ -25,6 +25,9 @@ import { PasswordUpdateForm } from "./password-update-form";
 import { Skeleton } from "../ui/skeleton";
 import { useSyncExternalStore } from "react";
 import { ThemeOption } from "./theme-option";
+import { User } from "@supabase/supabase-js";
+import { updateCurrencyPreference } from "@/actions/settings";
+import { useState } from "react";
 
 const emptySubscribe = () => () => {};
 const getClientSnapshot = () => true;
@@ -37,15 +40,43 @@ function useMounted() {
   );
 }
 
-export function SettingsForm() {
+interface SettingsFormProps {
+  user: User;
+}
+
+export function SettingsForm({ user }: SettingsFormProps) {
   const { theme, setTheme } = useTheme();
   const mounted = useMounted();
   const t = useTranslations();
 
-  const handleSave = () => {
-    // todo: In a real app, this should likely trigger a Server Action or API call
-    toast.success("Settings saved successfully");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Get the selected currency from the Select component (via accessible DOM or controlled state)
+      // Since Shadcn Select doesn't expose a simple ref value, it's better to control it with state.
+      // But refactoring to controlled state is safer.
+      const formData = new FormData();
+      formData.append("currency", currency);
+
+      const result = await updateCurrencyPreference(formData);
+      if (result.success) {
+        toast.success(t("Settings.changesSaved"));
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error("An error occurred");
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  const [currency, setCurrency] = useState(
+    user.user_metadata?.currency || "USD",
+  );
 
   return (
     <div className="space-y-6">
@@ -57,12 +88,13 @@ export function SettingsForm() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="currency">{t("Settings.defaultCurrency")}</Label>
-            <Select defaultValue="USD">
+            <Select value={currency} onValueChange={setCurrency}>
               <SelectTrigger id="currency">
                 <SelectValue placeholder="Select currency" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="USD">USD ($)</SelectItem>
+                <SelectItem value="USDT">USDT (₮)</SelectItem>
                 <SelectItem value="VED">VED (Bs.)</SelectItem>
                 <SelectItem value="EUR">EUR (€)</SelectItem>
               </SelectContent>
@@ -98,8 +130,8 @@ export function SettingsForm() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave}>
-          {t("Settings.savePreferenceChanges")}
+        <Button onClick={handleSave} disabled={isSaving}>
+          {isSaving ? "Saving..." : t("Settings.savePreferenceChanges")}
         </Button>
       </div>
     </div>

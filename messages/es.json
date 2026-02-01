@@ -109,7 +109,8 @@
     "updating": "Actualizando...",
     "updatePassword": "Actualizar contraseña",
     "savePreferenceChanges": "Guardar cambios de preferencia",
-    "change_password_toggle": "Cambiar contraseña"
+    "change_password_toggle": "Cambiar contraseña",
+    "changesSaved": "Cambios guardados exitosamente"
   },
   "Rates": {
     "title": "Tasas",

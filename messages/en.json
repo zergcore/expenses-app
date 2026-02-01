@@ -106,7 +106,8 @@
     "updating": "Updating...",
     "updatePassword": "Update Password",
     "savePreferenceChanges": "Save Preference Changes",
-    "change_password_toggle": "Change password"
+    "change_password_toggle": "Change password",
+    "changesSaved": "Changes saved successfully"
   },
   "Rates": {
     "title": "Rates",

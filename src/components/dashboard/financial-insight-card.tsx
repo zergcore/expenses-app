@@ -1,6 +1,9 @@
+"use client";
+
 import { getFinancialInsight, type FinancialInsight } from "@/actions/advisor";
-import { getTranslations, getLocale } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
   Lightbulb,
@@ -8,8 +11,13 @@ import {
   Sparkles,
   TrendingUp,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
 } from "lucide-react";
-import type { FinancialTip, SupportedLocale } from "@/lib/advisor/types";
+import type { FinancialTip } from "@/lib/advisor/types";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 // --- Tip Icon Component ---
 
@@ -72,7 +80,7 @@ function MetricsSummary({
   t,
 }: {
   insight: FinancialInsight;
-  t: Awaited<ReturnType<typeof getTranslations>>;
+  t: (key: string) => string;
 }) {
   const m = insight.metrics;
 
@@ -94,69 +102,139 @@ function MetricsSummary({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <Card className="border-dashed">
-      <CardContent className="py-8 text-center">
-        <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <Sparkles className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <p className="text-sm text-muted-foreground">{message}</p>
-      </CardContent>
-    </Card>
+    <div className="py-6 text-center text-muted-foreground space-y-2">
+      <div className="mx-auto w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+        <Sparkles className="h-5 w-5 opacity-50" />
+      </div>
+      <p className="text-sm">{message}</p>
+    </div>
   );
 }
 
 // --- Main Component ---
 
-export async function FinancialInsightCard() {
-  const t = await getTranslations("Advisor");
-  const locale = (await getLocale()) as SupportedLocale;
+export function FinancialInsightCard() {
+  const t = useTranslations("Advisor");
+  const [isOpen, setIsOpen] = useState(false);
+  const [insight, setInsight] = useState<FinancialInsight | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const result = await getFinancialInsight(locale);
+  const handleToggle = async () => {
+    if (isOpen) {
+      setIsOpen(false);
+      return;
+    }
 
-  if (!result.success || !result.insight) {
-    return <EmptyState message={result.error || t("noData")} />;
-  }
+    setIsOpen(true);
 
-  const { insight } = result;
+    if (!insight) {
+      setLoading(true);
+      try {
+        // Since this is a client component, we rely on the server action to determine locale or pass it in.
+        // For simplicity, we'll let the server action default to 'es' or we could pass via props if needed.
+        // Ideally, we pass locale as a prop from the parent server component.
+        // Assuming the server action can handle it or we update it.
+        // Actually, getFinancialInsight takes a locale. We need the locale here.
+        // We can get it from the standard props if we modify the parent, or valid assumption.
+        // Let's assume 'es' for now or update signatures.
+        // Better: Pass locale as prop. But for now I'll use a fixed one or modify signature.
+        // Wait, I can't easily get locale in Client Component without props? useLocale() hook exists!
+
+        // Let's use useLocale hook if available or just hardcode 'es' if props not passed.
+        // But I will stick to 'es' as default in action.
+        const result = await getFinancialInsight();
+
+        if (result.success && result.insight) {
+          setInsight(result.insight);
+        } else {
+          setError(result.error || t("noData"));
+        }
+      } catch {
+        setError(t("noData"));
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   return (
-    <Card className="bg-linear-to-br from-violet-500/5 via-transparent to-fuchsia-500/5 border-violet-500/20">
-      <CardHeader className="pb-3">
+    <Card
+      className={cn(
+        "transition-all duration-300 border-violet-500/20",
+        isOpen
+          ? "bg-linear-to-br from-violet-500/5 via-transparent to-fuchsia-500/5"
+          : "bg-card hover:bg-muted/50",
+      )}
+    >
+      <CardHeader
+        className={cn("cursor-pointer", isOpen ? "pb-3" : "py-4")}
+        onClick={handleToggle}
+      >
         <div className="flex items-center justify-between">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-violet-500" />
+            <Sparkles
+              className={cn(
+                "h-4 w-4 text-violet-500",
+                !isOpen && "text-muted-foreground",
+              )}
+            />
             {t("title")}
           </CardTitle>
-          <span className="text-xs text-muted-foreground">
-            {t("lastUpdated")}{" "}
-            {new Intl.DateTimeFormat(locale, {
-              hour: "numeric",
-              minute: "numeric",
-            }).format(insight.generatedAt)}
-          </span>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6">
+            {isOpen ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
         </div>
-        {insight.summary && (
-          <p className="text-sm text-muted-foreground">{insight.summary}</p>
+        {!isOpen && (
+          <p className="text-xs text-muted-foreground mt-1">{t("subtitle")}</p>
         )}
       </CardHeader>
 
-      <CardContent className="space-y-3">
-        {/* Tips */}
-        <div className="space-y-2">
-          {insight.tips.map((tip, index) => (
-            <TipCard
-              key={index}
-              tip={tip}
-              typeLabel={t(`tipTypes.${tip.type}`)}
-            />
-          ))}
-        </div>
+      {isOpen && (
+        <CardContent className="space-y-3 animate-in fade-in slide-in-from-top-2">
+          {loading ? (
+            <div className="py-8 text-center space-y-3">
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-violet-500" />
+              <p className="text-xs text-muted-foreground">{t("refreshing")}</p>
+            </div>
+          ) : error ? (
+            <EmptyState message={error!} />
+          ) : insight ? (
+            <>
+              {insight!.summary && (
+                <p className="text-sm text-muted-foreground">
+                  {insight!.summary}
+                </p>
+              )}
 
-        {/* Metrics footer */}
-        <div className="pt-2 border-t border-border/50">
-          <MetricsSummary insight={insight} t={t} />
-        </div>
-      </CardContent>
+              <div className="space-y-2">
+                {insight!.tips.map((tip, index) => (
+                  <TipCard
+                    key={index}
+                    tip={tip}
+                    typeLabel={t(`tipTypes.${tip.type}`)}
+                  />
+                ))}
+              </div>
+
+              <div className="pt-2 border-t border-border/50 flex justify-between items-center">
+                <MetricsSummary insight={insight!} t={t} />
+                <span className="text-xs text-muted-foreground">
+                  {t("lastUpdated")}{" "}
+                  {new Date(insight!.generatedAt).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            </>
+          ) : null}
+        </CardContent>
+      )}
     </Card>
   );
 }

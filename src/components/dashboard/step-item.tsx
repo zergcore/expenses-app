@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight, Link } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { OnboardingStep } from "./onboarding-card";
 
 export function StepItem({
