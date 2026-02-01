@@ -40,7 +40,7 @@ export type ActionState = {
 
 export async function createCategory(
   prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
 
@@ -96,4 +96,71 @@ export async function deleteCategory(id: string) {
   }
 
   revalidatePath("/categories");
+}
+
+export async function updateCategory(
+  prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const id = formData.get("id") as string;
+  if (!id) {
+    return { error: "Category ID is required" };
+  }
+
+  const rawData = {
+    name: formData.get("name"),
+    icon: formData.get("icon"),
+    color: formData.get("color"),
+    parent_id:
+      formData.get("parent_id") === "root"
+        ? null
+        : formData.get("parent_id") || null,
+  };
+
+  const validated = categorySchema.safeParse(rawData);
+
+  if (!validated.success) {
+    return {
+      error: "Invalid input",
+      errors: validated.error.flatten().fieldErrors,
+    };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Unauthorized" };
+  }
+
+  // Only allow updating non-system categories
+  const { data: category } = await supabase
+    .from("categories")
+    .select("is_default")
+    .eq("id", id)
+    .single();
+
+  if (category?.is_default) {
+    return { error: "System categories cannot be edited" };
+  }
+
+  const { error } = await supabase
+    .from("categories")
+    .update({
+      name: validated.data.name,
+      icon: validated.data.icon,
+      color: validated.data.color,
+      parent_id: validated.data.parent_id,
+    })
+    .eq("id", id);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  revalidatePath("/categories");
+  return { success: true };
 }
