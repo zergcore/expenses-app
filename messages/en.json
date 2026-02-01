@@ -110,7 +110,10 @@
   },
   "Rates": {
     "title": "Rates",
-    "description": "See exchange rates."
+    "description": "See exchange rates.",
+    "monthly_trend": "Monthly Rate Trend",
+    "usd_official": "USD (BCV Official)",
+    "usdt_binance": "USDT (Binance P2P)"
   },
   "Notifications": {
     "title": "Notifications",
@@ -193,6 +196,8 @@
     "table": {
       "description": "Description",
       "total": "Total (Current Month)",
+      "spent_per_currency": "Spent per Currency",
+      "total_equivalent": "Total Equivalent",
       "no_expenses_yet": "No expenses recorded yet. Add your first expense to get started.",
       "amount": "Amount",
       "previous": "Previous",
@@ -215,6 +220,9 @@
     "to_stay_on_budget": "to stay on budget.",
     "search_expenses": "Search by description, category, or amount...",
     "all_categories": "All",
+    "currency_filter": {
+      "all": "All Currencies"
+    },
     "filter_by_category": "Filter by category",
     "edit": "Edit",
     "goal": "goal",

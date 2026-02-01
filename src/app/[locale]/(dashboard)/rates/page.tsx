@@ -1,12 +1,16 @@
 import { RateCard } from "@/components/rates/rate-card";
+import { RatesHistoryChart } from "@/components/rates/rates-history-chart";
 import { requireUser } from "@/lib/auth/server";
-import { getExchangeRates } from "@/actions/rates";
+import { getExchangeRates, getMonthlyRateHistory } from "@/actions/rates";
 import { RatesTitle } from "@/components/rates/rates-title";
 
 export default async function RatesPage() {
   await requireUser();
 
-  const rates = await getExchangeRates();
+  const [rates, rateHistory] = await Promise.all([
+    getExchangeRates(),
+    getMonthlyRateHistory(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -16,6 +20,9 @@ export default async function RatesPage() {
           <RateCard key={index} {...rate} />
         ))}
       </div>
+
+      {/* Monthly Rate History Chart */}
+      <RatesHistoryChart data={rateHistory} />
     </div>
   );
 }

@@ -113,7 +113,10 @@
   },
   "Rates": {
     "title": "Tasas",
-    "description": "Ver tasas de cambio."
+    "description": "Ver tasas de cambio.",
+    "monthly_trend": "Tendencia Mensual de Tasas",
+    "usd_official": "USD (BCV Oficial)",
+    "usdt_binance": "USDT (Binance P2P)"
   },
   "Notifications": {
     "title": "Notificaciones",
@@ -197,6 +200,8 @@
     "table": {
       "description": "Descripción",
       "total": "Total (Mes actual)",
+      "spent_per_currency": "Gasto por Moneda",
+      "total_equivalent": "Total Equivalente",
       "no_expenses_yet": "No hay gastos registrados aún. Agrega tu primer gasto para comenzar.",
       "amount": "Monto",
       "previous": "Anterior",
@@ -220,6 +225,9 @@
     "to_stay_on_budget": "para mantenerte dentro del presupuesto.",
     "search_expenses": "Buscar por descripción, categoría o monto...",
     "all_categories": "Todas",
+    "currency_filter": {
+      "all": "Todas las Monedas"
+    },
     "filter_by_category": "Filtrar por categoría",
     "goal": "meta",
     "assign_category": "Asignar Categoría",

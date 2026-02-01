@@ -45,6 +45,8 @@ interface ExpenseChartProviderProps {
   initialExpenses: Expense[];
   budgetedCategoryIds: string[];
   hasGlobalBudget: boolean;
+  viewedMonth?: number; // 0-indexed (0 = January)
+  viewedYear?: number;
 }
 
 export function ExpenseChartProvider({
@@ -56,6 +58,8 @@ export function ExpenseChartProvider({
   initialExpenses,
   budgetedCategoryIds,
   hasGlobalBudget,
+  viewedMonth,
+  viewedYear,
 }: ExpenseChartProviderProps) {
   const [totalBudget] = useState(initialTotalBudget); // Budget config usually static per session unless realtime too
   const [budgetSpent, setBudgetSpent] = useState(initialBudgetSpent);
@@ -185,22 +189,46 @@ export function ExpenseChartProvider({
   const percentage =
     totalBudget > 0 ? Math.round((budgetSpent / totalBudget) * 100) : 0;
 
-  // Daily spending insights
+  // Daily spending insights - use viewed month/year if provided, else current
   const now = new Date();
-  const daysElapsed = now.getDate();
-  const daysInMonth = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-  ).getDate();
-  const daysRemaining = daysInMonth - daysElapsed;
-  const dailyAverageSpent = daysElapsed > 0 ? totalExpenses / daysElapsed : 0;
+  const targetMonth = viewedMonth ?? now.getMonth();
+  const targetYear = viewedYear ?? now.getFullYear();
+
+  // Check if we're viewing a past month
+  const isCurrentMonth =
+    targetMonth === now.getMonth() && targetYear === now.getFullYear();
+  const isPastMonth =
+    targetYear < now.getFullYear() ||
+    (targetYear === now.getFullYear() && targetMonth < now.getMonth());
+
+  // Days in the target month
+  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+
+  // Days elapsed depends on whether we're viewing current, past, or future month
+  let daysElapsed: number;
+  if (isPastMonth) {
+    // Past month: all days have elapsed
+    daysElapsed = daysInMonth;
+  } else if (isCurrentMonth) {
+    // Current month: use current day
+    daysElapsed = now.getDate();
+  } else {
+    // Future month: no days elapsed yet
+    daysElapsed = 0;
+  }
+
+  const daysRemaining = Math.max(daysInMonth - daysElapsed, 0);
+  // Daily average uses budgetSpent to stay in the budget's currency
+  const dailyAverageSpent = daysElapsed > 0 ? budgetSpent / daysElapsed : 0;
   const dailyBudgetTarget =
     daysRemaining > 0 ? (totalBudget - budgetSpent) / daysRemaining : 0;
 
   // Projected end-of-month spending: P = (A × D) + S
-  // Where A = daily average, D = remaining days, S = current total spent
-  const projectedSpending = dailyAverageSpent * daysRemaining + totalExpenses;
+  // For past months, projection equals total spent (no more days to project)
+  // Where A = daily average, D = remaining days, S = current budget spent
+  const projectedSpending = isPastMonth
+    ? budgetSpent
+    : dailyAverageSpent * daysRemaining + budgetSpent;
 
   const value = {
     totalBudget,

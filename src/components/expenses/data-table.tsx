@@ -26,6 +26,10 @@ import { useState, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Category } from "@/lib/categories";
 import { getCategoryName } from "@/lib/utils";
+import type { Expense } from "@/actions/expenses";
+import type { CurrencyFilter, MultiCurrencyTotals } from "@/lib/currency-types";
+import { sumByEquivalent } from "@/lib/currency-calculator";
+import { formatCurrencyAmount, CURRENCY_CONFIG } from "@/lib/currency-types";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -34,12 +38,15 @@ interface DataTableProps<TData, TValue> {
   categories?: Category[];
 }
 
+const CURRENCY_FILTERS: CurrencyFilter[] = ["ALL", "VES", "USD", "USDT", "EUR"];
+
 export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
   const { columns, data, categories } = props;
   const t = useTranslations();
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [currencyFilter, setCurrencyFilter] = useState<CurrencyFilter>("ALL");
 
   // Get unique root categories for filter pills
   const rootCategories = useMemo(() => {
@@ -47,8 +54,37 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
     return categories.filter((c) => !c.parent_id).slice(0, 5);
   }, [categories]);
 
+  // Calculate multi-currency equivalents using memoization for performance
+  const multiCurrencyTotals = useMemo<MultiCurrencyTotals>(() => {
+    const expenses = data as unknown as Expense[];
+    return sumByEquivalent(expenses);
+  }, [data]);
+
+  // Calculate original spending per currency (what was actually spent in each currency)
+  const originalSpending = useMemo<MultiCurrencyTotals>(() => {
+    const expenses = data as unknown as Expense[];
+    const totals: MultiCurrencyTotals = { ves: 0, usd: 0, usdt: 0, eur: 0 };
+
+    for (const expense of expenses) {
+      const curr = expense.currency.toLowerCase() as keyof MultiCurrencyTotals;
+      if (curr in totals) {
+        totals[curr] += expense.amount;
+      }
+    }
+    return totals;
+  }, [data]);
+
+  // Filter data by currency
+  const filteredData = useMemo(() => {
+    if (currencyFilter === "ALL") return data;
+    return data.filter((item) => {
+      const expense = item as unknown as Expense;
+      return expense.currency === currencyFilter;
+    });
+  }, [data, currencyFilter]);
+
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -84,6 +120,28 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
             onChange={(e) => setGlobalFilter(e.target.value)}
             className="pl-9 h-9 w-full"
           />
+        </div>
+
+        {/* Currency filter pills */}
+        <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-1">
+          {CURRENCY_FILTERS.map((currency) => (
+            <Button
+              key={currency}
+              variant={currencyFilter === currency ? "default" : "outline"}
+              size="sm"
+              className="h-8 text-xs shrink-0 gap-1"
+              onClick={() => setCurrencyFilter(currency)}
+            >
+              {currency === "ALL" ? (
+                t("Expenses.currency_filter.all")
+              ) : (
+                <>
+                  <span>{CURRENCY_CONFIG[currency].icon}</span>
+                  <span>{currency}</span>
+                </>
+              )}
+            </Button>
+          ))}
         </div>
 
         {/* Category filter pills - scrollable on mobile */}
@@ -165,23 +223,58 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
               </TableRow>
             )}
           </TableBody>
-          {/* Footer for Total */}
-          {typeof props.totalAmount === "number" && (
-            <TableFooter className="sticky bottom-0 bg-background">
-              <TableRow>
-                <TableCell colSpan={columns.length - 2}>
-                  {t("Expenses.table.total")}
-                </TableCell>
-                <TableCell className="text-right font-bold">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                  }).format(props.totalAmount)}
-                </TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableFooter>
-          )}
+          {/* Multi-currency Footer Totals */}
+          <TableFooter className="sticky bottom-0 bg-background">
+            {/* Row 1: Original spending per currency */}
+            <TableRow>
+              <TableCell
+                colSpan={columns.length - 2}
+                className="text-muted-foreground text-xs"
+              >
+                {t("Expenses.table.spent_per_currency")}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex flex-col gap-0.5 text-xs">
+                  <span className="text-muted-foreground">
+                    {formatCurrencyAmount(originalSpending.ves, "VES")}
+                  </span>
+                  <span>
+                    {formatCurrencyAmount(originalSpending.usd, "USD")}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {formatCurrencyAmount(originalSpending.usdt, "USDT")}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {formatCurrencyAmount(originalSpending.eur, "EUR")}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell></TableCell>
+            </TableRow>
+            {/* Row 2: Total equivalents in all currencies */}
+            <TableRow>
+              <TableCell colSpan={columns.length - 2} className="font-semibold">
+                {t("Expenses.table.total_equivalent")}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex flex-col gap-0.5 text-sm font-bold">
+                  <span className="text-muted-foreground text-xs">
+                    {formatCurrencyAmount(multiCurrencyTotals.ves, "VES")}
+                  </span>
+                  <span>
+                    {formatCurrencyAmount(multiCurrencyTotals.usd, "USD")}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {formatCurrencyAmount(multiCurrencyTotals.usdt, "USDT")}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {formatCurrencyAmount(multiCurrencyTotals.eur, "EUR")}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell></TableCell>
+            </TableRow>
+          </TableFooter>
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">

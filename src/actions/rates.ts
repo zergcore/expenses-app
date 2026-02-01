@@ -170,7 +170,11 @@ async function fetchBCVRates(): Promise<{
       usdPrice = data.promedio ?? data.price ?? 0;
     }
 
-    return { usd: usdPrice, eur: 0 };
+    // Estimate EUR from USD using approximate EUR/USD rate (1 EUR ≈ 1.08 USD)
+    // This is a fallback when we can't get the official EUR rate
+    const eurEstimate = usdPrice > 0 ? usdPrice * 1.08 : 0;
+
+    return { usd: usdPrice, eur: eurEstimate };
   } catch (e) {
     console.error("BCV Fetch Error:", e);
     return { usd: 0, eur: 0 };
@@ -427,4 +431,141 @@ export async function getExchangeRates(): Promise<RateData[]> {
   }
 
   return results;
+}
+
+// -----------------------------------------------------------------------------
+// Monthly Rate History (for charts)
+// -----------------------------------------------------------------------------
+
+export interface RateHistoryPoint {
+  date: string;
+  usd: number | null;
+  usdt: number | null;
+}
+
+/**
+ * Fetches historical rates for the current month for USD and USDT.
+ * Returns data points grouped by day for charting.
+ */
+export async function getMonthlyRateHistory(): Promise<RateHistoryPoint[]> {
+  const supabase = await createClient();
+  const now = new Date();
+
+  // Get first and last day of current month
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+  );
+
+  // Fetch all rates for the month
+  const { data, error } = await supabase
+    .from("exchange_rates")
+    .select("pair, rate, fetched_at, source")
+    .in("pair", ["USD_VES", "USDT_VES"])
+    .gte("fetched_at", startOfMonth.toISOString())
+    .lte("fetched_at", endOfMonth.toISOString())
+    .order("fetched_at", { ascending: true });
+
+  if (error || !data) {
+    console.error("Failed to fetch rate history:", error);
+    return [];
+  }
+
+  // Group by day and take last rate of each day for each pair
+  const dayMap = new Map<string, { usd: number | null; usdt: number | null }>();
+
+  data.forEach((row) => {
+    const date = new Date(row.fetched_at).toISOString().split("T")[0];
+    const rate = parseFloat(row.rate);
+
+    if (!dayMap.has(date)) {
+      dayMap.set(date, { usd: null, usdt: null });
+    }
+
+    const dayData = dayMap.get(date)!;
+    if (row.pair === "USD_VES") {
+      dayData.usd = rate;
+    } else if (row.pair === "USDT_VES") {
+      dayData.usdt = rate;
+    }
+  });
+
+  // Convert to array sorted by date
+  const result: RateHistoryPoint[] = [];
+  const sortedDates = Array.from(dayMap.keys()).sort();
+
+  sortedDates.forEach((date) => {
+    const dayData = dayMap.get(date)!;
+    result.push({
+      date,
+      usd: dayData.usd,
+      usdt: dayData.usdt,
+    });
+  });
+
+  return result;
+}
+
+// -----------------------------------------------------------------------------
+// Get Current Rates Snapshot for Expense Creation
+// -----------------------------------------------------------------------------
+
+export interface RatesSnapshot {
+  usd_ves: number;
+  usdt_ves: number;
+  eur_ves: number;
+  usd_usdt: number;
+  eur_usdt: number;
+}
+
+/**
+ * Get the most recent rates from the database for expense creation.
+ * Returns a snapshot of all rate pairs needed for equivalents calculation.
+ */
+export async function getCurrentRatesSnapshot(): Promise<RatesSnapshot> {
+  const supabase = await createClient();
+
+  // Fetch the most recent rate for each pair
+  const { data } = await supabase
+    .from("exchange_rates")
+    .select("pair, rate")
+    .in("pair", ["USD_VES", "USDT_VES", "EUR_VES"])
+    .order("fetched_at", { ascending: false });
+
+  const rates: RatesSnapshot = {
+    usd_ves: 0,
+    usdt_ves: 0,
+    eur_ves: 0,
+    usd_usdt: 0,
+    eur_usdt: 0,
+  };
+
+  // Get the latest rate for each pair
+  const seen = new Set<string>();
+  data?.forEach((row) => {
+    if (!seen.has(row.pair)) {
+      seen.add(row.pair);
+      const rate = parseFloat(row.rate);
+      if (row.pair === "USD_VES") rates.usd_ves = rate;
+      if (row.pair === "USDT_VES") rates.usdt_ves = rate;
+      if (row.pair === "EUR_VES") rates.eur_ves = rate;
+    }
+  });
+
+  // Fallback: estimate EUR_VES from USD_VES if not available
+  // Using approximate EUR/USD rate of 1.08
+  if (rates.eur_ves === 0 && rates.usd_ves > 0) {
+    rates.eur_ves = rates.usd_ves * 1.08;
+  }
+
+  // Calculate derived rates
+  rates.usd_usdt = rates.usdt_ves > 0 ? rates.usd_ves / rates.usdt_ves : 0;
+  rates.eur_usdt = rates.usdt_ves > 0 ? rates.eur_ves / rates.usdt_ves : 0;
+
+  return rates;
 }

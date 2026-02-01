@@ -2,14 +2,13 @@ import { getExpenses, getExpenseTotal } from "@/actions/expenses";
 import { getCategories } from "@/actions/categories";
 import { getBudgets } from "@/actions/budgets";
 import { buildCategoryTree } from "@/lib/categories";
-import { ExpenseForm } from "@/components/expenses/expense-form";
 import { ExpensesClient } from "@/components/expenses/expenses-client";
 import { MonthSelector } from "@/components/expenses/month-selector";
 import { KPIHeader } from "@/components/expenses/kpi-header";
 import { ExpenseChartProvider } from "@/components/expenses/expense-chart/expense-chart-context";
 import { ExportExpensesButton } from "@/components/expenses/export-expenses-button";
 import { ExpensesTitle } from "@/components/expenses/expenses-title";
-import { ReceiptScanner } from "@/components/receipts/receipt-scanner";
+import { ExpenseActions } from "@/components/expenses/expense-actions";
 
 interface ExpensesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -28,15 +27,18 @@ export default async function ExpensesPage({
       getExpenses(1, 100, month, year),
       getCategories(),
       getExpenseTotal(month, year),
-      getBudgets(),
+      getBudgets(month, year),
     ]);
 
   const expenses = expensesResult.data;
   const categories = categoriesResult;
   const categoryTree = buildCategoryTree(categories);
 
+  // Sum budgets - assumes all budgets use the same currency
+  // TODO: Handle multi-currency budgets if needed in the future
   const totalBudget = budgets.reduce((acc, b) => acc + b.amount, 0);
   const totalBudgetSpent = budgets.reduce((acc, b) => acc + b.spent, 0);
+  const budgetCurrency = budgets.length > 0 ? budgets[0].currency : "USD";
 
   const hasGlobalBudget = budgets.some((b) => b.category_id === null);
   const budgetedCategoryIds = budgets
@@ -48,10 +50,12 @@ export default async function ExpensesPage({
       totalBudget={totalBudget}
       budgetSpent={totalBudgetSpent}
       totalExpenses={totalAmount}
-      currency="USD"
+      currency={budgetCurrency}
       initialExpenses={expenses}
       hasGlobalBudget={hasGlobalBudget}
       budgetedCategoryIds={budgetedCategoryIds}
+      viewedMonth={month}
+      viewedYear={year}
     >
       <div className="space-y-4">
         {/* Header section */}
@@ -61,8 +65,7 @@ export default async function ExpensesPage({
             <ExpensesTitle />
             {/* Primary actions always visible on desktop */}
             <div className="hidden sm:flex items-center gap-2">
-              <ReceiptScanner categories={categoryTree} />
-              <ExpenseForm categories={categoryTree} />
+              <ExpenseActions categories={categoryTree} />
             </div>
           </div>
 
@@ -78,8 +81,7 @@ export default async function ExpensesPage({
           {/* Mobile: Action buttons on separate row for full visibility */}
           <div className="sm:hidden flex flex-wrap items-center gap-2">
             <ExportExpensesButton />
-            <ReceiptScanner categories={categoryTree} />
-            <ExpenseForm categories={categoryTree} />
+            <ExpenseActions categories={categoryTree} />
           </div>
         </div>
 

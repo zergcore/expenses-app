@@ -72,6 +72,19 @@ export type Expense = {
     is_default: boolean;
   } | null;
   category_id: string | null;
+  equivalents: {
+    usd: number;
+    ves: number;
+    usdt: number;
+    eur: number;
+  } | null;
+  rates_at_creation: {
+    usd_ves: number;
+    usdt_ves: number;
+    eur_ves: number;
+    usd_usdt: number;
+    eur_usdt: number;
+  } | null;
 };
 
 // Internal type for Supabase response in getExpenses
@@ -88,11 +101,24 @@ type RawExpenseResponse = {
     color: string | null;
     is_default: boolean;
   } | null;
+  equivalents: {
+    usd: number;
+    ves: number;
+    usdt: number;
+    eur: number;
+  } | null;
+  rates_at_creation: {
+    usd_ves: number;
+    usdt_ves: number;
+    eur_ves: number;
+    usd_usdt: number;
+    eur_usdt: number;
+  } | null;
 };
 
 const expenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
-  currency: z.enum(["USD", "VES", "USDT"]),
+  currency: z.enum(["USD", "VES", "USDT", "EUR"]),
   date: z.string(),
   category_id: z.string().optional().nullable(),
   description: z.string().optional(),
@@ -129,7 +155,7 @@ export async function getExpenses(
     .from("expenses")
     .select(
       `
-      id, amount, currency, description, date, category_id,
+      id, amount, currency, description, date, category_id, equivalents, rates_at_creation,
       category:categories (name, icon, color, is_default)
     `,
       { count: "exact" },
@@ -291,9 +317,21 @@ export async function createExpense(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
+  // Fetch current rates and calculate equivalents
+  const { getCurrentRatesSnapshot } = await import("@/actions/rates");
+  const { calculateEquivalents } = await import("@/lib/currency-calculator");
+
+  const rates = await getCurrentRatesSnapshot();
+  const amount = validated.data.amount;
+  const currency = validated.data.currency as "USD" | "VES" | "USDT" | "EUR";
+
+  const equivalents = calculateEquivalents(amount, currency, rates);
+
   const { error } = await supabase.from("expenses").insert({
     user_id: user.id,
     ...validated.data,
+    equivalents,
+    rates_at_creation: rates,
   });
 
   if (error) return { error: error.message };
@@ -334,9 +372,23 @@ export async function updateExpense(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Unauthorized" };
 
+  // Recalculate equivalents with current rates
+  const { getCurrentRatesSnapshot } = await import("@/actions/rates");
+  const { calculateEquivalents } = await import("@/lib/currency-calculator");
+
+  const rates = await getCurrentRatesSnapshot();
+  const amount = validated.data.amount;
+  const currency = validated.data.currency as "USD" | "VES" | "USDT" | "EUR";
+
+  const equivalents = calculateEquivalents(amount, currency, rates);
+
   const { error } = await supabase
     .from("expenses")
-    .update(validated.data)
+    .update({
+      ...validated.data,
+      equivalents,
+      rates_at_creation: rates,
+    })
     .eq("id", id)
     .eq("user_id", user.id);
 
