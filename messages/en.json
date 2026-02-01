@@ -384,5 +384,20 @@
     "date": "Date",
     "match": "Match",
     "positionReceipt": "Position your receipt in the frame"
+  },
+  "Advisor": {
+    "title": "Your Financial Advisor",
+    "subtitle": "Personalized tips based on your spending",
+    "refreshing": "Refreshing insights...",
+    "lastUpdated": "Last updated",
+    "refresh": "Refresh",
+    "noData": "Could not generate insights at this time.",
+    "projected": "Projected",
+    "daysRemaining": "days remaining",
+    "tipTypes": {
+      "warning": "Alert",
+      "tip": "Tip",
+      "success": "Great job"
+    }
   }
 }

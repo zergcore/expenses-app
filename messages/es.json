@@ -392,5 +392,20 @@
     "date": "Fecha",
     "match": "Coincidencia",
     "positionReceipt": "Posiciona tu recibo en el cuadro"
+  },
+  "Advisor": {
+    "title": "Tu Asesor Financiero",
+    "subtitle": "Consejos personalizados basados en tus gastos",
+    "refreshing": "Actualizando consejos...",
+    "lastUpdated": "Actualizado",
+    "refresh": "Actualizar",
+    "noData": "No se pudieron generar consejos en este momento.",
+    "projected": "Proyectado",
+    "daysRemaining": "días restantes",
+    "tipTypes": {
+      "warning": "Alerta",
+      "tip": "Consejo",
+      "success": "Bien hecho"
+    }
   }
 }

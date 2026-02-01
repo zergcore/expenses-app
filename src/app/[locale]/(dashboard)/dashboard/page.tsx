@@ -13,6 +13,11 @@ import { SmallCard } from "@/components/dashboard/small-card";
 import { RecentExpenses } from "@/components/dashboard/recent-expenses";
 import { OnboardingCard } from "@/components/dashboard/onboarding-card";
 import { getLocale } from "next-intl/server";
+import { Suspense } from "react";
+import {
+  FinancialInsightCard,
+  FinancialInsightCardSkeleton,
+} from "@/components/dashboard/financial-insight-card";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -60,6 +65,11 @@ export default async function DashboardPage() {
         hasExpenses={hasExpenses}
         hasBudgets={hasBudgets}
       />
+
+      {/* AI Financial Advisor */}
+      <Suspense fallback={<FinancialInsightCardSkeleton />}>
+        <FinancialInsightCard />
+      </Suspense>
 
       {/* Summary Cards */}
       <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
