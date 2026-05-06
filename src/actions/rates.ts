@@ -520,6 +520,63 @@ export async function getMonthlyRateHistory(
 }
 
 // -----------------------------------------------------------------------------
+// Last N Days Rate History (public / anon-accessible)
+// -----------------------------------------------------------------------------
+
+/**
+ * Fetches rate history for the last `days` calendar days.
+ * Uses anon-accessible RLS (exchange_rates allows anon SELECT).
+ * Returns one point per calendar day (last rate of the day per pair).
+ */
+export async function getLastNDaysRateHistory(
+  days: number,
+): Promise<RateHistoryPoint[]> {
+  const supabase = await createClient();
+  const now = new Date();
+  const endDate = now;
+  const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+
+  const { data, error } = await supabase
+    .from("exchange_rates")
+    .select("pair, rate, fetched_at")
+    .in("pair", ["USD_VES", "USDT_VES", "EUR_VES"])
+    .gte("fetched_at", startDate.toISOString())
+    .lte("fetched_at", endDate.toISOString())
+    .order("fetched_at", { ascending: true });
+
+  if (error) {
+    console.error("Failed to fetch last N days rate history:", error);
+    return [];
+  }
+
+  // Build a dayMap keyed by YYYY-MM-DD, taking the last rate per day per pair
+  const dayMap = new Map<string, { usd: number | null; usdt: number | null; eur: number | null }>();
+
+  data?.forEach((row) => {
+    const d = new Date(row.fetched_at);
+    const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    if (!dayMap.has(dateKey)) {
+      dayMap.set(dateKey, { usd: null, usdt: null, eur: null });
+    }
+    const dayData = dayMap.get(dateKey)!;
+    const rate = parseFloat(row.rate);
+    if (row.pair === "USD_VES") dayData.usd = rate;
+    else if (row.pair === "USDT_VES") dayData.usdt = rate;
+    else if (row.pair === "EUR_VES") dayData.eur = rate;
+  });
+
+  const result: RateHistoryPoint[] = [];
+  Array.from(dayMap.keys())
+    .sort()
+    .forEach((date) => {
+      const dayData = dayMap.get(date)!;
+      result.push({ date, usd: dayData.usd, usdt: dayData.usdt, eur: dayData.eur });
+    });
+
+  return result;
+}
+
+// -----------------------------------------------------------------------------
 // Get Current Rates Snapshot for Expense Creation
 // -----------------------------------------------------------------------------
 
