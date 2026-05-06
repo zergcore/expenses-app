@@ -17,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ArrowLeftRight, Copy, Check, ArrowUpDown } from "lucide-react";
+import { Copy, Check, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { copyToClipboard } from "@/lib/clipboard";
@@ -34,10 +34,10 @@ type CurrencyPair = "USD" | "USDT" | "EUR";
 
 export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
   const t = useTranslations();
-  const [amount, setAmount] = useState<string>("1");
+  const [fromAmount, setFromAmount] = useState<string>("1");
+  const [toAmount, setToAmount] = useState<string>("");
   const [currency, setCurrency] = useState<CurrencyPair>("USD");
   const [direction, setDirection] = useState<"toBs" | "fromBs">("toBs");
-  const [result, setResult] = useState<number>(0);
   const [copied, setCopied] = useState(false);
 
   const getRateForCurrency = (curr: CurrencyPair): number => {
@@ -53,17 +53,33 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
     }
   };
 
-  useEffect(() => {
-    const numAmount = parseFloat(amount) || 0;
-    const rate = getRateForCurrency(currency);
+  function computeTo(from: string, rate: number, dir: "toBs" | "fromBs"): string {
+    const n = parseFloat(from) || 0;
+    if (dir === "toBs") return (n * rate).toFixed(2);
+    return rate > 0 ? (n / rate).toFixed(2) : "0.00";
+  }
 
-    if (direction === "toBs") {
-      setResult(numAmount * rate);
-    } else {
-      setResult(rate > 0 ? numAmount / rate : 0);
-    }
+  function computeFrom(to: string, rate: number, dir: "toBs" | "fromBs"): string {
+    const n = parseFloat(to) || 0;
+    if (dir === "toBs") return rate > 0 ? (n / rate).toFixed(2) : "0.00";
+    return (n * rate).toFixed(2);
+  }
+
+  const handleFromChange = (val: string) => {
+    setFromAmount(val);
+    setToAmount(computeTo(val, getRateForCurrency(currency), direction));
+  };
+
+  const handleToChange = (val: string) => {
+    setToAmount(val);
+    setFromAmount(computeFrom(val, getRateForCurrency(currency), direction));
+  };
+
+  // Recompute toAmount when currency or direction changes
+  useEffect(() => {
+    setToAmount(computeTo(fromAmount, getRateForCurrency(currency), direction));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [amount, currency, direction, rates]);
+  }, [currency, direction, rates]);
 
   const toggleDirection = () => {
     setDirection((prev) => (prev === "toBs" ? "fromBs" : "toBs"));
@@ -75,16 +91,9 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
     EUR: "€",
   };
 
-  const getFormattedResult = () => {
-    return result.toLocaleString("es-VE", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
-
   const handleCopyResult = async () => {
     const prefix = direction === "toBs" ? "Bs. " : currencySymbols[currency];
-    const textToCopy = `${prefix}${getFormattedResult()}`;
+    const textToCopy = `${prefix}${toAmount}`;
     const success = await copyToClipboard(textToCopy);
     if (success) {
       setCopied(true);
@@ -135,8 +144,8 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
                 </span>
                 <Input
                   type="number"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={fromAmount}
+                  onChange={(e) => handleFromChange(e.target.value)}
                   className="pl-10 h-10 bg-background border-0 shadow-sm font-semibold text-base"
                   placeholder="0.00"
                 />
@@ -164,10 +173,11 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
                     {direction === "toBs" ? "Bs." : currencySymbols[currency]}
                   </span>
                   <Input
-                    type="text"
-                    value={getFormattedResult()}
-                    readOnly
+                    type="number"
+                    value={toAmount}
+                    onChange={(e) => handleToChange(e.target.value)}
                     className="pl-10 h-10 bg-primary/5 border-primary/20 font-semibold text-base"
+                    placeholder="0.00"
                   />
                 </div>
                 <TooltipProvider>
