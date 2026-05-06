@@ -20,159 +20,275 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { RateHistoryPoint } from "@/actions/rates";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import type { RateHistoryPoint, DailyRatePoint } from "@/actions/rates";
 
 interface RatesHistoryChartProps {
-  data: RateHistoryPoint[];
+  data: RateHistoryPoint[] | DailyRatePoint[];
+  granularity: "month" | "day";
+  selectedDate: string; // YYYY-MM-DD (used in daily mode)
 }
 
-export function RatesHistoryChart({ data }: RatesHistoryChartProps) {
+export function RatesHistoryChart({
+  data,
+  granularity,
+  selectedDate,
+}: RatesHistoryChartProps) {
   const t = useTranslations("Rates");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Get current selected month from URL or default to current
-  const currentMonthParam = searchParams.get("month");
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const selectedMonth = currentMonthParam || defaultMonth;
+  const selectedMonth = searchParams.get("month") || defaultMonth;
 
-  // Generate last 12 months for selector
+  // Generate last 12 months for the month selector
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const label = d.toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    });
+    const label = d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
     return { value, label };
   });
 
-  const handleMonthChange = (value: string) => {
+  const setParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams);
-    if (value === defaultMonth) {
-      params.delete("month");
+    if (value === null) {
+      params.delete(key);
     } else {
-      params.set("month", value);
+      params.set(key, value);
     }
     router.replace(`${pathname}?${params.toString()}`);
   };
 
-  // Format date for display (e.g., "Jan 15")
+  const handleGranularityChange = (g: "month" | "day") => {
+    const params = new URLSearchParams(searchParams);
+    if (g === "month") {
+      params.delete("granularity");
+      params.delete("date");
+    } else {
+      params.set("granularity", "day");
+      if (!params.has("date")) params.set("date", selectedDate);
+    }
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
+  const handleMonthChange = (value: string) => {
+    setParam("month", value === defaultMonth ? null : value);
+  };
+
+  const handleDateSelect = (d: Date | undefined) => {
+    if (!d) return;
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    setParam("date", dateStr);
+    setCalendarOpen(false);
+  };
+
+  // Format date for display (monthly mode)
   const formatDate = (dateStr: string) => {
-    // Parse partial string to ensure local time is used (avoiding UTC conversion issues)
     const [year, month, day] = dateStr.split("-").map(Number);
     const date = new Date(year, month - 1, day);
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
-  // Prepare chart data with formatted dates
-  const chartData = data.map((point) => ({
-    ...point,
-    displayDate: formatDate(point.date),
-  }));
+  // Build chart data based on granularity
+  const isDaily = granularity === "day";
 
-  // Calculate domain for Y axis with some padding
-  const validRates = data
-    .flatMap((d) => [d.usd, d.usdt, d.eur])
-    .filter((v): v is number => v !== null);
+  const chartData = isDaily
+    ? (data as DailyRatePoint[]).map((p) => ({ ...p, displayKey: p.time }))
+    : (data as RateHistoryPoint[]).map((p) => ({
+        ...p,
+        displayKey: formatDate(p.date),
+      }));
 
+  const allRates = isDaily
+    ? (data as DailyRatePoint[]).flatMap((d) => [d.usdt, d.usd, d.eur])
+    : (data as RateHistoryPoint[]).flatMap((d) => [d.usd, d.usdt, d.eur]);
+
+  const validRates = allRates.filter((v): v is number => v !== null);
   const minRate = validRates.length > 0 ? Math.min(...validRates) : 0;
   const maxRate = validRates.length > 0 ? Math.max(...validRates) : 100;
   const padding = (maxRate - minRate) * 0.1 || 1;
 
+  // Parse selectedDate for the calendar
+  const [sy, sm, sd] = selectedDate.split("-").map(Number);
+  const calendarDate = new Date(sy, sm - 1, sd);
+
+  const isEmpty = validRates.length === 0;
+
   return (
     <Card className="w-full">
-      <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
+      <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 flex-wrap gap-2">
         <CardTitle className="text-lg font-semibold">
-          {t("monthly_trend")}
+          {isDaily ? t("daily_trend") : t("monthly_trend")}
         </CardTitle>
-        <Select value={selectedMonth} onValueChange={handleMonthChange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select month" />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map((month) => (
-              <SelectItem key={month.value} value={month.value}>
-                {month.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardHeader>
-      <CardContent className="pb-4">
-        <div className="h-[300px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-              data={chartData}
-              margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Granularity toggle */}
+          <div className="flex rounded-md border overflow-hidden text-sm">
+            <button
+              onClick={() => handleGranularityChange("month")}
+              className={cn(
+                "px-3 py-1.5 transition-colors",
+                !isDaily
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted",
+              )}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                className="stroke-muted"
-                opacity={0.3}
-              />
-              <XAxis
-                dataKey="displayDate"
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
-                className="text-muted-foreground"
-              />
-              <YAxis
-                domain={[minRate - padding, maxRate + padding]}
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `Bs.${value.toFixed(0)}`}
-                className="text-muted-foreground"
-                width={60}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-                labelStyle={{ fontWeight: "bold", marginBottom: "4px" }}
-                formatter={(value: number) => [`Bs. ${value.toFixed(2)}`, ""]}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }} />
-              <Line
-                type="monotone"
-                dataKey="usd"
-                name={t("usd_official")}
-                stroke="#3b82f6"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="usdt"
-                name={t("usdt_binance")}
-                stroke="#10b981"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-                connectNulls
-              />
-              <Line
-                type="monotone"
-                dataKey="eur"
-                name={t("eur_bcv")}
-                stroke="#f59e0b"
-                strokeWidth={2}
-                dot={{ r: 3 }}
-                activeDot={{ r: 5 }}
-                connectNulls
-              />
-            </LineChart>
-          </ResponsiveContainer>
+              {t("granularity_monthly")}
+            </button>
+            <button
+              onClick={() => handleGranularityChange("day")}
+              className={cn(
+                "px-3 py-1.5 transition-colors border-l",
+                isDaily
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-muted",
+              )}
+            >
+              {t("granularity_daily")}
+            </button>
+          </div>
+
+          {/* Month selector (monthly mode) */}
+          {!isDaily && (
+            <Select value={selectedMonth} onValueChange={handleMonthChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month.value} value={month.value}>
+                    {month.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
+          {/* Date picker (daily mode) */}
+          {isDaily && (
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-[180px] justify-start text-left font-normal",
+                    !selectedDate && "text-muted-foreground",
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate
+                    ? format(calendarDate, "PPP")
+                    : t("pick_date")}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={calendarDate}
+                  onSelect={handleDateSelect}
+                  disabled={(d) => d > now}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
+      </CardHeader>
+
+      <CardContent className="pb-4">
+        {isEmpty ? (
+          <p className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
+            {t("no_data_for_date")}
+          </p>
+        ) : (
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={chartData}
+                margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  className="stroke-muted"
+                  opacity={0.3}
+                />
+                <XAxis
+                  dataKey="displayKey"
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  className="text-muted-foreground"
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  domain={[minRate - padding, maxRate + padding]}
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `Bs.${value.toFixed(0)}`}
+                  className="text-muted-foreground"
+                  width={60}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                  }}
+                  labelStyle={{ fontWeight: "bold", marginBottom: "4px" }}
+                  formatter={(value: number) => [`Bs. ${value.toFixed(2)}`, ""]}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: "12px", paddingTop: "10px" }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="usd"
+                  name={t("usd_official")}
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  dot={isDaily ? false : { r: 3 }}
+                  activeDot={{ r: 5 }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="usdt"
+                  name={t("usdt_binance")}
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={isDaily ? false : { r: 3 }}
+                  activeDot={{ r: 5 }}
+                  connectNulls
+                />
+                <Line
+                  type="monotone"
+                  dataKey="eur"
+                  name={t("eur_bcv")}
+                  stroke="#f59e0b"
+                  strokeWidth={2}
+                  dot={isDaily ? false : { r: 3 }}
+                  activeDot={{ r: 5 }}
+                  connectNulls
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

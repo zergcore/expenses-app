@@ -118,7 +118,12 @@
     "monthly_trend": "Tendencia Mensual de Tasas",
     "usd_official": "USD (BCV Oficial)",
     "usdt_binance": "USDT (Binance P2P)",
-    "eur_bcv": "EUR (BCV Oficial)"
+    "eur_bcv": "EUR (BCV Oficial)",
+    "granularity_monthly": "Mensual",
+    "granularity_daily": "Diario",
+    "daily_trend": "Tendencia Diaria de Tasas",
+    "pick_date": "Seleccionar fecha",
+    "no_data_for_date": "Sin datos de tasa para esta fecha."
   },
   "Notifications": {
     "title": "Notificaciones",

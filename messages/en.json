@@ -115,7 +115,12 @@
     "monthly_trend": "Monthly Rate Trend",
     "usd_official": "USD (BCV Official)",
     "usdt_binance": "USDT (Binance P2P)",
-    "eur_bcv": "EUR (BCV Official)"
+    "eur_bcv": "EUR (BCV Official)",
+    "granularity_monthly": "Monthly",
+    "granularity_daily": "Daily",
+    "daily_trend": "Daily Rate Trend",
+    "pick_date": "Pick a date",
+    "no_data_for_date": "No rate data for this date."
   },
   "Notifications": {
     "title": "Notifications",

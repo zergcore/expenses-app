@@ -520,6 +520,66 @@ export async function getMonthlyRateHistory(
 }
 
 // -----------------------------------------------------------------------------
+// Daily (Intraday) Rate History
+// -----------------------------------------------------------------------------
+
+export interface DailyRatePoint {
+  time: string;        // "HH:mm" formatted from fetched_at in local time
+  fetched_at: string;  // ISO 8601 — retained for sorting
+  usdt: number | null;
+  usd: number | null;
+  eur: number | null;
+}
+
+/**
+ * Returns all raw exchange_rate records for a single calendar day.
+ * Sorted ascending by fetched_at. Uses UTC day boundary.
+ */
+export async function getDailyRateHistory(
+  date: string, // YYYY-MM-DD
+): Promise<DailyRatePoint[]> {
+  const supabase = await createClient();
+
+  const startOfDay = new Date(date + "T00:00:00.000Z");
+  const endOfDay = new Date(date + "T23:59:59.999Z");
+
+  const { data, error } = await supabase
+    .from("exchange_rates")
+    .select("pair, rate, fetched_at")
+    .in("pair", ["USDT_VES", "USD_VES", "EUR_VES"])
+    .gte("fetched_at", startOfDay.toISOString())
+    .lte("fetched_at", endOfDay.toISOString())
+    .order("fetched_at", { ascending: true });
+
+  if (error) {
+    console.error("Failed to fetch daily rate history:", error);
+    return [];
+  }
+
+  // Group by fetched_at timestamp — merge pairs that share the same second
+  const pointMap = new Map<string, DailyRatePoint>();
+
+  data?.forEach((row) => {
+    const ts = row.fetched_at;
+    if (!pointMap.has(ts)) {
+      const d = new Date(ts);
+      const hh = String(d.getHours()).padStart(2, "0");
+      const mm = String(d.getMinutes()).padStart(2, "0");
+      pointMap.set(ts, { time: `${hh}:${mm}`, fetched_at: ts, usdt: null, usd: null, eur: null });
+    }
+    const point = pointMap.get(ts)!;
+    const rate = parseFloat(row.rate);
+    if (row.pair === "USDT_VES") point.usdt = rate;
+    else if (row.pair === "USD_VES") point.usd = rate;
+    else if (row.pair === "EUR_VES") point.eur = rate;
+  });
+
+  return Array.from(pointMap.values()).sort((a, b) =>
+    a.fetched_at.localeCompare(b.fetched_at),
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Last N Days Rate History (public / anon-accessible)
 // -----------------------------------------------------------------------------
 
