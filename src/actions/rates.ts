@@ -437,6 +437,7 @@ export interface RateHistoryPoint {
   date: string;
   usd: number | null;
   usdt: number | null;
+  eur: number | null;
 }
 
 /**
@@ -458,21 +459,21 @@ export async function getMonthlyRateHistory(
   const endOfMonth = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
 
   // Initialize map with all days in the month to ensure continuous chart
-  const dayMap = new Map<string, { usd: number | null; usdt: number | null }>();
+  const dayMap = new Map<string, { usd: number | null; usdt: number | null; eur: number | null }>();
   const daysInMonth = endOfMonth.getDate();
 
   for (let i = 1; i <= daysInMonth; i++) {
     const d = new Date(targetYear, targetMonth, i);
     // Use local date string YYYY-MM-DD
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    dayMap.set(dateKey, { usd: null, usdt: null });
+    dayMap.set(dateKey, { usd: null, usdt: null, eur: null });
   }
 
   // Fetch all rates for the month
   const { data, error } = await supabase
     .from("exchange_rates")
     .select("pair, rate, fetched_at, source")
-    .in("pair", ["USD_VES", "USDT_VES"])
+    .in("pair", ["USD_VES", "USDT_VES", "EUR_VES"])
     .gte("fetched_at", startOfMonth.toISOString())
     .lte("fetched_at", endOfMonth.toISOString())
     .order("fetched_at", { ascending: true });
@@ -495,6 +496,8 @@ export async function getMonthlyRateHistory(
         dayData.usd = rate;
       } else if (row.pair === "USDT_VES") {
         dayData.usdt = rate;
+      } else if (row.pair === "EUR_VES") {
+        dayData.eur = rate;
       }
     }
   });
@@ -509,6 +512,7 @@ export async function getMonthlyRateHistory(
       date,
       usd: dayData.usd,
       usdt: dayData.usdt,
+      eur: dayData.eur,
     });
   });
 

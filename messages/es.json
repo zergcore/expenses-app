@@ -117,7 +117,8 @@
     "description": "Ver tasas de cambio.",
     "monthly_trend": "Tendencia Mensual de Tasas",
     "usd_official": "USD (BCV Oficial)",
-    "usdt_binance": "USDT (Binance P2P)"
+    "usdt_binance": "USDT (Binance P2P)",
+    "eur_bcv": "EUR (BCV Oficial)"
   },
   "Notifications": {
     "title": "Notificaciones",

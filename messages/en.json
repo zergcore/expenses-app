@@ -114,7 +114,8 @@
     "description": "See exchange rates.",
     "monthly_trend": "Monthly Rate Trend",
     "usd_official": "USD (BCV Official)",
-    "usdt_binance": "USDT (Binance P2P)"
+    "usdt_binance": "USDT (Binance P2P)",
+    "eur_bcv": "EUR (BCV Official)"
   },
   "Notifications": {
     "title": "Notifications",
