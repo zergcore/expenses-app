@@ -69,12 +69,21 @@ export function ShareRatesImageTemplate({
   const today = format(new Date(), "MMMM d, yyyy");
 
   return (
+    // Wrapper handles off-screen placement — NOT captured by html-to-image
+    <div
+      style={{
+        position: "fixed",
+        left: "-9999px",
+        top: "-9999px",
+        overflow: "hidden",
+        width: 0,
+        height: 0,
+      }}
+    >
+    {/* Inner div is the capture target — no positioning, so content renders at (0,0) inside the clone */}
     <div
       ref={templateRef}
       style={{
-        position: "absolute",
-        left: "-9999px",
-        top: "-9999px",
         width: dims.width,
         height: dims.height,
         background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
@@ -196,6 +205,7 @@ export function ShareRatesImageTemplate({
           {tagline}
         </span>
       </div>
+    </div>
     </div>
   );
 }
