@@ -57,13 +57,13 @@ export function ShareRatesImageTemplate({
   }, []);
 
   const logoHeight = isStory ? 80 : 48;
-  const dateFontSize = isStory ? 28 : isLandscape ? 18 : 16;
-  const rateFontSize = isStory ? 42 : isLandscape ? 28 : 24;
-  const labelFontSize = isStory ? 22 : isLandscape ? 16 : 14;
-  const sourceFontSize = isStory ? 18 : 13;
-  const footerFontSize = isStory ? 22 : 14;
+  const dateFontSize = isStory ? 28 : isLandscape ? 20 : 18;
+  const rateFontSize = isStory ? 72 : isLandscape ? 48 : 52;
+  const labelFontSize = isStory ? 36 : isLandscape ? 24 : 28;
+  const sourceFontSize = isStory ? 22 : isLandscape ? 16 : 15;
+  const footerFontSize = isStory ? 24 : 16;
   const padding = isStory ? 48 : 32;
-  const rowGap = isStory ? 36 : 20;
+  const rowGap = isStory ? 48 : isLandscape ? 28 : 32;
 
   const selectedPairsArr = Array.from(selectedPairs);
   const today = format(new Date(), "MMMM d, yyyy");
@@ -86,7 +86,7 @@ export function ShareRatesImageTemplate({
       style={{
         width: dims.width,
         height: dims.height,
-        background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
+        background: "linear-gradient(135deg, #0a0a0a 0%, #171717 100%)",
         fontFamily: "system-ui, -apple-system, sans-serif",
         display: "flex",
         flexDirection: "column",
@@ -108,13 +108,13 @@ export function ShareRatesImageTemplate({
         ) : (
           <div style={{ height: logoHeight, width: logoHeight * 2, background: "transparent" }} />
         )}
-        <span style={{ color: "#94a3b8", fontSize: dateFontSize, fontWeight: 400 }}>
+        <span style={{ color: "#a3a3a3", fontSize: dateFontSize, fontWeight: 400 }}>
           {today}
         </span>
       </div>
 
       {/* Divider */}
-      <div style={{ height: 1, background: "rgba(255,255,255,0.1)", marginInline: padding }} />
+      <div style={{ height: 1, background: "rgba(64,64,64,0.5)", marginInline: padding }} />
 
       {/* Rate rows */}
       <div
@@ -133,7 +133,7 @@ export function ShareRatesImageTemplate({
           const rateValue = rateData ? `Bs. ${rateData.value.toFixed(2)}` : "—";
           const trend = rateData?.trend ?? "flat";
           const change = rateData?.change ?? "0.00%";
-          const trendColor = trend === "up" ? "#22c55e" : trend === "down" ? "#ef4444" : "#94a3b8";
+          const trendColor = trend === "up" ? "#22c55e" : trend === "down" ? "#ef4444" : "#a3a3a3";
           const trendArrow = trend === "up" ? "▲" : trend === "down" ? "▼" : "—";
 
           return (
@@ -158,14 +158,14 @@ export function ShareRatesImageTemplate({
                 >
                   {meta.name}
                 </span>
-                <span style={{ color: "#64748b", fontSize: sourceFontSize }}>
+                <span style={{ color: "#a3a3a3", fontSize: sourceFontSize }}>
                   {meta.source}
                 </span>
               </div>
 
               {/* Right: rate value + trend badge */}
               <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                <span style={{ color: "#f8fafc", fontSize: rateFontSize, fontWeight: 700 }}>
+                <span style={{ color: "#f5f5f5", fontSize: rateFontSize, fontWeight: 700 }}>
                   {rateValue}
                 </span>
                 <span
@@ -187,7 +187,7 @@ export function ShareRatesImageTemplate({
       </div>
 
       {/* Divider */}
-      <div style={{ height: 1, background: "rgba(255,255,255,0.1)", marginInline: padding }} />
+      <div style={{ height: 1, background: "rgba(64,64,64,0.5)", marginInline: padding }} />
 
       {/* Footer */}
       <div
@@ -198,10 +198,10 @@ export function ShareRatesImageTemplate({
           padding: `${padding * 0.75}px ${padding}px ${padding}px`,
         }}
       >
-        <span style={{ color: "#f8fafc", fontSize: footerFontSize, fontWeight: 600 }}>
+        <span style={{ color: "#c4a77d", fontSize: footerFontSize, fontWeight: 700 }}>
           fin.app
         </span>
-        <span style={{ color: "#64748b", fontSize: footerFontSize }}>
+        <span style={{ color: "#a3a3a3", fontSize: footerFontSize }}>
           {tagline}
         </span>
       </div>
