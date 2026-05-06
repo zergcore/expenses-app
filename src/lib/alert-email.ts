@@ -4,7 +4,7 @@ const DEVELOPER_EMAIL = process.env.DEVELOPER_EMAIL;
 
 export async function sendDolarvzlaAlert(): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) return; // silently skip if key not configured
+  if (!apiKey || !DEVELOPER_EMAIL) return; // silently skip if not configured
 
   const resend = new Resend(apiKey);
 
