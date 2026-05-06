@@ -194,6 +194,7 @@
     "icon_placeholder": "Icon",
     "name_placeholder": "e.g. Groceries",
     "none": "None (Root Category)",
+    "uncategorized": "Uncategorized",
     "create": "Create Category"
   },
   "Expenses": {
@@ -289,6 +290,7 @@
   },
   "Nav": {
     "dashboard": "Dashboard",
+    "recurring": "Recurring",
     "expenses": "Expenses",
     "budgets": "Budgets",
     "categories": "Categories",
@@ -436,5 +438,40 @@
       "tip": "Tip",
       "success": "Great job"
     }
+  },
+  "Common": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save_changes": "Save Changes"
+  },
+  "Recurring": {
+    "title": "Recurring Expenses",
+    "description": "Automate your regular expenses with recurring rules.",
+    "add_recurring": "Add Recurring Expense",
+    "edit_recurring": "Edit Recurring Expense",
+    "setup_recurring_expense": "Set up an expense that repeats automatically.",
+    "update_recurring_details": "Update the recurring expense details.",
+    "create_rule": "Create Rule",
+    "rule_created": "Recurring rule created",
+    "rule_updated": "Recurring rule updated",
+    "rule_deleted": "Recurring rule deleted",
+    "rule_enabled": "Recurring rule enabled",
+    "rule_disabled": "Recurring rule disabled",
+    "expense_generated": "Expense generated successfully",
+    "frequency": "Frequency",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "start_date": "First Due Date",
+    "next_due": "Next Due",
+    "description_placeholder": "e.g. Monthly Rent, Netflix subscription",
+    "generate_first_expense_now": "Generate first expense now",
+    "generate_now": "Generate Now",
+    "no_recurring_rules": "No Recurring Expenses",
+    "no_recurring_rules_description": "Set up recurring expenses to automatically track regular payments like rent, subscriptions, and utilities.",
+    "delete_rule_title": "Delete Recurring Rule?",
+    "delete_rule_description": "This will permanently delete this recurring rule. Past generated expenses will not be affected."
   }
 }

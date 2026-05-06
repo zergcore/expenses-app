@@ -366,7 +366,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
       prevUsdt && prevUsdt > 0 ? ((usdtVes - prevUsdt) / prevUsdt) * 100 : 0;
 
     results.push({
-      pair: "USDT / USD",
+      pair: "USDT / VED",
       rate: `Bs. ${usdtVes.toFixed(2)}`,
       trend: calculateTrend(changeVal),
       change: formatChange(changeVal),

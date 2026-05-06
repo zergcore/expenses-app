@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useExpenseChart } from "./expense-chart/expense-chart-context";
 import { formatCurrency } from "@/lib/utils";
 import { useTranslations } from "next-intl";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
 import {
   TrendingUp,
   Calendar,
@@ -12,8 +12,10 @@ import {
   CheckCircle2,
   Target,
 } from "lucide-react";
-import { COLORS } from "@/lib/constants";
+import { COLORS } from "@/constants/chart";
 import { cn } from "@/lib/utils";
+import { StatCard } from "./kpi/stat-card";
+import { useMemo } from "react";
 
 export const KPIHeader = () => {
   const {
@@ -32,48 +34,66 @@ export const KPIHeader = () => {
   } = useExpenseChart();
   const t = useTranslations();
 
-  // Calculate if on track
-  const isOnTrack = dailyAverageSpent <= dailyBudgetTarget;
-  const isProjectedOverBudget = projectedSpending > totalBudget;
-  const daysInMonth = daysElapsed + daysRemaining;
-  const dailyGoal = totalBudget / daysInMonth;
+  // --- 2. Memoize Calculations ---
+  // Prevents re-calculation and reference changes on every render
+  const { daysInMonth, dailyGoal, isOnTrack, isProjectedOverBudget } =
+    useMemo(() => {
+      const daysInMonth = daysElapsed + daysRemaining;
+      return {
+        daysInMonth,
+        dailyGoal: totalBudget / (daysInMonth || 1), // Avoid division by zero
+        isOnTrack: dailyAverageSpent <= dailyBudgetTarget,
+        isProjectedOverBudget: projectedSpending > totalBudget,
+      };
+    }, [
+      daysElapsed,
+      daysRemaining,
+      totalBudget,
+      dailyAverageSpent,
+      dailyBudgetTarget,
+      projectedSpending,
+    ]);
 
-  // Mini donut data
-  const donutData = isOverBudget
-    ? [
-        { value: totalBudget, fill: COLORS.spent },
-        { value: budgetSpent - totalBudget, fill: COLORS.over },
-      ]
-    : [
-        { value: budgetSpent, fill: COLORS.spent },
-        { value: remaining, fill: COLORS.remaining },
-      ];
+  const donutData = useMemo(
+    () =>
+      isOverBudget
+        ? [
+            { value: totalBudget, fill: COLORS.spent },
+            {
+              value: Math.max(0, budgetSpent - totalBudget),
+              fill: COLORS.over,
+            },
+          ]
+        : [
+            { value: budgetSpent, fill: COLORS.spent },
+            { value: remaining, fill: COLORS.remaining },
+          ],
+    [isOverBudget, totalBudget, budgetSpent, remaining],
+  );
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      {/* 1. Budget Summary - Mini Donut */}
-      <Card className="relative bg-gradient-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
-        {/* Decorative accent */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+      {/* 1. Budget Summary (Unique Layout) */}
+      <Card className="relative overflow-hidden bg-linear-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
+        <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-primary/60 via-primary to-primary/60" />
         <CardContent className="p-5">
           <div className="flex items-center gap-4">
-            {/* Donut Chart */}
             <div className="relative w-16 h-16 flex-shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={donutData}
-                    dataKey="value"
-                    innerRadius={22}
-                    outerRadius={30}
-                    strokeWidth={0}
-                  >
-                    {donutData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+              {/* Optimization: Removed ResponsiveContainer for fixed dimensions */}
+              <PieChart width={64} height={64}>
+                <Pie
+                  data={donutData}
+                  dataKey="value"
+                  innerRadius={22}
+                  outerRadius={30}
+                  strokeWidth={0}
+                  isAnimationActive={false} // Performance boost
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span
                   className={cn(
@@ -86,7 +106,6 @@ export const KPIHeader = () => {
               </div>
             </div>
 
-            {/* Text Content */}
             <div className="flex-1 min-w-0">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
                 {t("Expenses.budget_overview")}
@@ -100,7 +119,6 @@ export const KPIHeader = () => {
             </div>
           </div>
 
-          {/* Progress bar for days */}
           <div className="mt-4 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground">
@@ -120,168 +138,73 @@ export const KPIHeader = () => {
         </CardContent>
       </Card>
 
-      {/* 2. Daily Average - Burn Rate */}
-      <Card className="relative overflow-hidden bg-gradient-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
-        <div
-          className={cn(
-            "absolute top-0 left-0 w-full h-1",
-            isOnTrack
-              ? "bg-gradient-to-r from-green-500/60 via-green-500 to-green-500/60"
-              : "bg-gradient-to-r from-orange-500/60 via-orange-500 to-orange-500/60",
-          )}
-        />
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "p-2 rounded-lg",
-                  isOnTrack ? "bg-green-500/10" : "bg-orange-500/10",
-                )}
-              >
-                <Target
-                  className={cn(
-                    "h-4 w-4",
-                    isOnTrack ? "text-green-500" : "text-orange-500",
-                  )}
-                />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {t("Expenses.daily_average")}
-              </span>
-            </div>
-            {isOnTrack ? (
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-            ) : (
-              <TrendingUp className="h-5 w-5 text-orange-500" />
-            )}
-          </div>
-
-          <div>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                isOnTrack ? "text-green-500" : "text-orange-500",
-              )}
-            >
-              {formatCurrency(dailyAverageSpent, currency)}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              / {formatCurrency(dailyGoal, currency)} {t("Expenses.goal")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* 2. Daily Average */}
+      <StatCard
+        title={t("Expenses.daily_average")}
+        value={formatCurrency(dailyAverageSpent, currency)}
+        subValue={
+          <>
+            / {formatCurrency(dailyGoal, currency)} {t("Expenses.goal")}
+          </>
+        }
+        icon={Target}
+        statusColor={isOnTrack ? "text-green-500" : "text-orange-500"}
+        statusBg={isOnTrack ? "bg-green-500/10" : "bg-orange-500/10"}
+        accentColor={isOnTrack ? "from-green-500" : "from-orange-500"}
+        trendIcon={
+          isOnTrack ? (
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+          ) : (
+            <TrendingUp className="h-5 w-5 text-orange-500" />
+          )
+        }
+      />
 
       {/* 3. EOM Projection */}
-      <Card className="relative overflow-hidden bg-gradient-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
-        <div
-          className={cn(
-            "absolute top-0 left-0 w-full h-1",
-            isProjectedOverBudget
-              ? "bg-gradient-to-r from-orange-500/60 via-orange-500 to-orange-500/60"
-              : "bg-gradient-to-r from-blue-500/60 via-blue-500 to-blue-500/60",
-          )}
-        />
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "p-2 rounded-lg",
-                  isProjectedOverBudget ? "bg-orange-500/10" : "bg-blue-500/10",
-                )}
-              >
-                <Calendar
-                  className={cn(
-                    "h-4 w-4",
-                    isProjectedOverBudget ? "text-orange-500" : "text-blue-500",
-                  )}
-                />
-              </div>
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {t("Expenses.projected_spending")}
-              </span>
-            </div>
-            {isProjectedOverBudget && (
-              <TrendingUp className="h-5 w-5 text-orange-500" />
-            )}
-          </div>
+      <StatCard
+        title={t("Expenses.projected_spending")}
+        value={formatCurrency(projectedSpending, currency)}
+        subValue={`${daysRemaining} ${t("Expenses.days_remaining_month")}`}
+        icon={Calendar}
+        statusColor={
+          isProjectedOverBudget ? "text-orange-500" : "text-foreground"
+        }
+        statusBg={isProjectedOverBudget ? "bg-orange-500/10" : "bg-blue-500/10"}
+        accentColor={
+          isProjectedOverBudget ? "from-orange-500" : "from-blue-500"
+        }
+        trendIcon={
+          isProjectedOverBudget && (
+            <TrendingUp className="h-5 w-5 text-orange-500" />
+          )
+        }
+      />
 
-          <div>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                isProjectedOverBudget ? "text-orange-500" : "text-foreground",
-              )}
-            >
-              {formatCurrency(projectedSpending, currency)}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {daysRemaining} {t("Expenses.days_remaining_month")}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 4. Unbudgeted Total - Badge Style */}
-      <Card
-        className={cn(
-          "relative overflow-hidden bg-gradient-to-br from-card to-card/80 border-border/50 transition-colors",
+      {/* 4. Unbudgeted Total */}
+      <StatCard
+        title={t("Expenses.unbudgeted_expenses")}
+        value={formatCurrency(unbudgetedAmount, currency)}
+        subValue={
+          unbudgetedAmount > 0 ? (
+            <span className="text-amber-500/80">
+              {t("Expenses.needs_category")}
+            </span>
+          ) : (
+            <span className="text-green-500/80">
+              ✓ {t("Expenses.all_categorized")}
+            </span>
+          )
+        }
+        icon={AlertTriangle}
+        statusColor={unbudgetedAmount > 0 ? "text-amber-500" : "text-green-500"}
+        statusBg={unbudgetedAmount > 0 ? "bg-amber-500/10" : "bg-green-500/10"}
+        accentColor={unbudgetedAmount > 0 ? "from-amber-500" : "from-green-500"}
+        borderColor={
           unbudgetedAmount > 0
             ? "border-amber-500/30 hover:border-amber-500/50"
-            : "hover:border-green-500/30",
-        )}
-      >
-        <div
-          className={cn(
-            "absolute top-0 left-0 w-full h-1",
-            unbudgetedAmount > 0
-              ? "bg-gradient-to-r from-amber-500/60 via-amber-500 to-amber-500/60"
-              : "bg-gradient-to-r from-green-500/60 via-green-500 to-green-500/60",
-          )}
-        />
-        <CardContent className="p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <div
-              className={cn(
-                "p-2 rounded-lg",
-                unbudgetedAmount > 0 ? "bg-amber-500/10" : "bg-green-500/10",
-              )}
-            >
-              <AlertTriangle
-                className={cn(
-                  "h-4 w-4",
-                  unbudgetedAmount > 0 ? "text-amber-500" : "text-green-500",
-                )}
-              />
-            </div>
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              {t("Expenses.unbudgeted_expenses")}
-            </span>
-          </div>
-
-          <div>
-            <p
-              className={cn(
-                "text-2xl font-bold",
-                unbudgetedAmount > 0 ? "text-amber-500" : "text-green-500",
-              )}
-            >
-              {formatCurrency(unbudgetedAmount, currency)}
-            </p>
-            {unbudgetedAmount > 0 ? (
-              <p className="text-sm text-amber-500/80 mt-1">
-                {t("Expenses.needs_category")}
-              </p>
-            ) : (
-              <p className="text-sm text-green-500/80 mt-1">
-                ✓ {t("Expenses.all_categorized")}
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            : "hover:border-green-500/30"
+        }
+      />
     </div>
   );
 };

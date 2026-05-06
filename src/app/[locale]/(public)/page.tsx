@@ -17,7 +17,7 @@ export default async function LandingPage() {
   ]);
 
   // Extract rates from the API response
-  const usdtRate = rates.find((r) => r.pair === "USDT / USD")?.value || 0;
+  const usdtRate = rates.find((r) => r.pair === "USDT / VED")?.value || 0;
   const usdRate = rates.find((r) => r.pair === "USD / VED")?.value || 0;
   const eurRate = rates.find((r) => r.pair === "EUR / VED")?.value || 0;
 

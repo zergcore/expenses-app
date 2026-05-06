@@ -197,6 +197,7 @@
     "icon_placeholder": "Icono",
     "name_placeholder": "Ej. Comida",
     "none": "Ninguno (Categoría raíz)",
+    "uncategorized": "Sin categoría",
     "create": "Crear Categoría"
   },
   "Expenses": {
@@ -292,6 +293,7 @@
   },
   "Nav": {
     "dashboard": "Inicio",
+    "recurring": "Recurrentes",
     "expenses": "Gastos",
     "budgets": "Presupuestos",
     "categories": "Categorías",
@@ -444,5 +446,40 @@
       "tip": "Consejo",
       "success": "Bien hecho"
     }
+  },
+  "Common": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "save_changes": "Guardar Cambios"
+  },
+  "Recurring": {
+    "title": "Gastos Recurrentes",
+    "description": "Automatiza tus gastos regulares con reglas recurrentes.",
+    "add_recurring": "Agregar Gasto Recurrente",
+    "edit_recurring": "Editar Gasto Recurrente",
+    "setup_recurring_expense": "Configura un gasto que se repite automáticamente.",
+    "update_recurring_details": "Actualiza los detalles del gasto recurrente.",
+    "create_rule": "Crear Regla",
+    "rule_created": "Regla recurrente creada",
+    "rule_updated": "Regla recurrente actualizada",
+    "rule_deleted": "Regla recurrente eliminada",
+    "rule_enabled": "Regla recurrente habilitada",
+    "rule_disabled": "Regla recurrente deshabilitada",
+    "expense_generated": "Gasto generado exitosamente",
+    "frequency": "Frecuencia",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "start_date": "Primera Fecha de Vencimiento",
+    "next_due": "Próximo Vencimiento",
+    "description_placeholder": "Ej. Alquiler mensual, suscripción Netflix",
+    "generate_first_expense_now": "Generar primer gasto ahora",
+    "generate_now": "Generar Ahora",
+    "no_recurring_rules": "Sin Gastos Recurrentes",
+    "no_recurring_rules_description": "Configura gastos recurrentes para rastrear automáticamente pagos regulares como alquiler, suscripciones y servicios.",
+    "delete_rule_title": "¿Eliminar Regla Recurrente?",
+    "delete_rule_description": "Esto eliminará permanentemente esta regla recurrente. Los gastos generados anteriormente no se verán afectados."
   }
 }

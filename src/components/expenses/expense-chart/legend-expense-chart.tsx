@@ -1,4 +1,4 @@
-import { COLORS } from "@/lib/constants";
+import { COLORS } from "@/constants/chart";
 import { formatCurrency } from "@/lib/utils";
 import { useExpenseChart } from "./expense-chart-context";
 import { useTranslations } from "next-intl";
