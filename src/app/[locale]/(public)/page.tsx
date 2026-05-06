@@ -1,4 +1,4 @@
-import { getExchangeRates } from "@/actions/rates";
+import { getExchangeRates, getLastNDaysRateHistory } from "@/actions/rates";
 import { CurrencyCalculator } from "@/components/landing/currency-calculator";
 import { RateComparisonChart } from "@/components/landing/rate-comparison-chart";
 import { CTASection } from "@/components/public/cta-section";
@@ -6,11 +6,15 @@ import { Footer } from "@/components/public/footer";
 import { HeroSection } from "@/components/public/hero-section";
 import { RateCardsSection } from "@/components/public/rate-cards-section";
 import { Header } from "@/components/public/header";
+import { HistoryPreviewSection } from "@/components/public/history-preview-section";
 import { getCurrentUser } from "@/lib/auth/server";
 
 export default async function LandingPage() {
-  const rates = await getExchangeRates();
-  const user = await getCurrentUser();
+  const [rates, historyData, user] = await Promise.all([
+    getExchangeRates(),
+    getLastNDaysRateHistory(30),
+    getCurrentUser(),
+  ]);
 
   // Extract rates from the API response
   const usdtRate = rates.find((r) => r.pair === "USDT / USD")?.value || 0;
@@ -41,6 +45,9 @@ export default async function LandingPage() {
 
       {/* Rate Cards Section */}
       <RateCardsSection rates={rates} />
+
+      {/* History Preview Section */}
+      <HistoryPreviewSection data={historyData} />
 
       {/* CTA Section */}
       {!user && <CTASection />}

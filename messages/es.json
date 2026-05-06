@@ -329,6 +329,13 @@
     "eur": "EUR (BCV Oficial)",
     "binanceP2P": "Binance P2P",
     "bcvOfficial": "BCV Oficial",
+    "history": {
+      "title": "Historial de Tasas — Últimos 30 días",
+      "subtitle": "Mira cómo el USD, USDT y EUR se han movido frente al Bolívar.",
+      "sign_in": "Iniciar sesión para acceso completo",
+      "preview_cta": "Inicia sesión para filtrar por fecha, seguir tendencias a largo plazo y acceder al historial completo.",
+      "no_data": "Aún no hay datos de tasas disponibles."
+    },
     "copy": "Copiar",
     "copied": "¡Copiado!",
     "binance_p2p_avg": "Binance P2P Promedio",

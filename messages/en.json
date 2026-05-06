@@ -320,6 +320,13 @@
     "eur": "EUR (BCV Official)",
     "binanceP2P": "Binance P2P",
     "bcvOfficial": "BCV Official",
+    "history": {
+      "title": "Rate History — Last 30 Days",
+      "subtitle": "See how USD, USDT, and EUR have moved against the Bolivar.",
+      "sign_in": "Sign In for Full Access",
+      "preview_cta": "Sign in to filter by date, track long-term trends, and access the full rate history.",
+      "no_data": "No rate data available yet."
+    },
     "copy": "Copy",
     "copied": "Copied!",
     "binance_p2p_avg": "Binance P2P Average",
