@@ -7,6 +7,7 @@ import {
   getDailyRateHistory,
 } from "@/actions/rates";
 import { RatesTitle } from "@/components/rates/rates-title";
+import { ShareRatesButton } from "@/components/rates/share-rates-button";
 
 interface RatesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -52,7 +53,9 @@ export default async function RatesPage({ searchParams }: RatesPageProps) {
 
   return (
     <div className="space-y-6">
-      <RatesTitle />
+      <RatesTitle>
+        <ShareRatesButton rates={rates} />
+      </RatesTitle>
       <div className="grid gap-3 sm:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {rates.map((rate, index) => (
           <RateCard key={index} {...rate} />
