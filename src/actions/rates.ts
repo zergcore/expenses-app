@@ -122,12 +122,33 @@ interface DolarVzlaResponse {
   };
 }
 
-async function fetchBCVRates(): Promise<{
+export interface BCVRatesResult {
   usd?: number;
   eur?: number;
   usdChange?: number;
   eurChange?: number;
-} | null> {
+  dolarvzlaFailed?: boolean; // true when primary API was unavailable
+}
+
+interface FrankfurterResponse {
+  rates: { USD: number };
+}
+
+async function fetchEurUsdRate(): Promise<number | null> {
+  try {
+    const res = await fetch(
+      "https://api.frankfurter.dev/v1/latest?from=EUR&to=USD",
+      { next: { revalidate: 3600 } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as FrankfurterResponse;
+    return data.rates?.USD ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchBCVRates(): Promise<BCVRatesResult | null> {
   const apiKey = process.env.DOLAR_VZLA_KEY;
 
   // Try dolarvzla.com API first (has both USD and EUR)
@@ -136,9 +157,7 @@ async function fetchBCVRates(): Promise<{
       const response = await fetch(
         "https://api.dolarvzla.com/public/exchange-rate",
         {
-          headers: {
-            "x-dolarvzla-key": apiKey,
-          },
+          headers: { "x-dolarvzla-key": apiKey },
           next: { revalidate: 3600 },
         },
       );
@@ -157,20 +176,26 @@ async function fetchBCVRates(): Promise<{
     }
   }
 
-  // Fallback to dolarapi.com (USD only, no EUR endpoint)
+  // Fallback: dolarapi.com for USD + Frankfurter (ECB) cross-rate for EUR
   try {
-    const usdRes = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
-      next: { revalidate: 3600 },
-    });
+    const [usdRes, eurUsdRate] = await Promise.all([
+      fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
+        next: { revalidate: 3600 },
+      }),
+      fetchEurUsdRate(),
+    ]);
 
     let usdPrice = 0;
-
     if (usdRes.ok) {
       const data = (await usdRes.json()) as DolarApiResponse;
       usdPrice = data.promedio ?? data.price ?? 0;
     }
 
-    return { usd: usdPrice };
+    // EUR/VES = (EUR/USD from ECB) × (USD/VES from BCV)
+    const eurPrice =
+      eurUsdRate && usdPrice > 0 ? eurUsdRate * usdPrice : undefined;
+
+    return { usd: usdPrice, eur: eurPrice, dolarvzlaFailed: true };
   } catch (e) {
     console.error("BCV Fetch Error:", e);
     return null;
@@ -427,6 +452,37 @@ export async function getExchangeRates(): Promise<RateData[]> {
   }
 
   return results;
+}
+
+/**
+ * Runs getExchangeRates and returns whether dolarvzla.com was unavailable.
+ * Used by the cron route to decide whether to send an alert email.
+ */
+export async function getExchangeRatesWithStatus(): Promise<{
+  rates: RateData[];
+  dolarvzlaFailed: boolean;
+}> {
+  // We re-implement the BCV check here so we can read the flag without
+  // changing getExchangeRates' public signature (it is called by many pages).
+  const apiKey = process.env.DOLAR_VZLA_KEY;
+  let dolarvzlaFailed = false;
+
+  if (apiKey) {
+    try {
+      const res = await fetch("https://api.dolarvzla.com/public/exchange-rate", {
+        headers: { "x-dolarvzla-key": apiKey },
+        next: { revalidate: 0 }, // bypass cache for a fresh check
+      });
+      if (!res.ok) dolarvzlaFailed = true;
+    } catch {
+      dolarvzlaFailed = true;
+    }
+  } else {
+    dolarvzlaFailed = true;
+  }
+
+  const rates = await getExchangeRates();
+  return { rates, dolarvzlaFailed };
 }
 
 // -----------------------------------------------------------------------------

@@ -1,4 +1,5 @@
-import { getExchangeRates } from "@/actions/rates";
+import { getExchangeRatesWithStatus } from "@/actions/rates";
+import { sendDolarvzlaAlert } from "@/lib/alert-email";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -8,10 +9,16 @@ export async function GET(request: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Trigger the update logic (which now checks staleness > 1h)
-    await getExchangeRates();
+    const { dolarvzlaFailed } = await getExchangeRatesWithStatus();
 
-    return NextResponse.json({ success: true });
+    if (dolarvzlaFailed) {
+      // Fire-and-forget — don't let an email failure block the cron response
+      sendDolarvzlaAlert().catch((e) =>
+        console.error("Failed to send dolarvzla alert:", e),
+      );
+    }
+
+    return NextResponse.json({ success: true, dolarvzlaFailed });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: String(error) },
