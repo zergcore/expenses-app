@@ -1,8 +1,9 @@
 "use server";
-
+import { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import type { Database } from "@/types/supabase"; // Auto-generated Supabase types
 
 // --- Types ---
 
@@ -36,7 +37,11 @@ interface ActionState {
 const recurringRuleSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   currency: z.enum(["USD", "VES", "USDT", "EUR"]),
-  category_id: z.string().optional().nullable(),
+  // Transform empty strings from FormData into null for strict DB compliance
+  category_id: z
+    .string()
+    .optional()
+    .transform((val) => (val === "" ? null : val)),
   description: z.string().optional(),
   frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
   next_due_date: z.string(),
@@ -44,6 +49,21 @@ const recurringRuleSchema = z.object({
 });
 
 // --- Helper Functions ---
+
+/**
+ * Ensures the user is authenticated. Throws an error to be caught by the action,
+ * or returns the valid user session.
+ */
+async function requireAuth(supabase: SupabaseClient<Database>) {
+  // Notice we removed the double await (await supabase) hack here too
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  return user;
+}
 
 function getNextDueDate(currentDate: string, frequency: string): string {
   // Use noon to avoid timezone shifts during calculation
@@ -59,7 +79,6 @@ function getNextDueDate(currentDate: string, frequency: string): string {
     case "monthly": {
       const currentMonth = date.getUTCMonth();
       date.setUTCMonth(currentMonth + 1);
-      // Handle month-end rollover (e.g. Jan 31 -> Feb 28)
       if (date.getUTCMonth() !== (currentMonth + 1) % 12) {
         date.setUTCDate(0);
       }
@@ -68,7 +87,6 @@ function getNextDueDate(currentDate: string, frequency: string): string {
     case "yearly": {
       const currentYear = date.getUTCFullYear();
       date.setUTCFullYear(currentYear + 1);
-      // Handle leap year (Feb 29 -> Feb 28)
       if (date.getUTCMonth() === 2 && date.getUTCDate() === 1) {
         date.setUTCDate(0);
       }
@@ -84,59 +102,52 @@ function getNextDueDate(currentDate: string, frequency: string): string {
 // --- Actions ---
 
 export async function getRecurringRules(): Promise<RecurringRule[]> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const user = await requireAuth(supabase);
 
-  if (!user) {
-    return [];
-  }
+    const { data, error } = await supabase
+      .from("recurring_rules")
+      .select(`*, category:categories(name, icon, color)`)
+      .eq("user_id", user.id)
+      .order("next_due_date", { ascending: true });
 
-  const { data, error } = await supabase
-    .from("recurring_rules")
-    .select(
-      `
-      *,
-      category:categories(name, icon, color)
-    `,
-    )
-    .eq("user_id", user.id)
-    .order("next_due_date", { ascending: true });
-
-  if (error) {
-    // Silently return empty if table doesn't exist (migration not applied)
-    if (error.code === "42P01") {
+    if (error) {
+      if (error.code === "42P01") return []; // Handle unapplied migrations silently
+      console.error("Error fetching recurring rules:", error);
       return [];
     }
-    console.error("Error fetching recurring rules:", error);
-    return [];
-  }
 
-  return data as RecurringRule[];
+    return data as RecurringRule[];
+  } catch {
+    return []; // Return empty if not authenticated
+  }
 }
 
 export async function createRecurringRule(
   prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    // Check if it's a standard JS Error object
+    if (err instanceof Error) {
+      return { error: err.message };
+    }
+    // Fallback for non-standard throws
+    return { error: "An unknown authentication error occurred" };
   }
 
-  // Parse and validate form data
   const rawData = {
     amount: formData.get("amount"),
     currency: formData.get("currency"),
-    category_id: formData.get("category_id") || null,
-    description: formData.get("description") || null,
+    category_id: formData.get("category_id"),
+    description: formData.get("description"),
     frequency: formData.get("frequency"),
     next_due_date: formData.get("next_due_date"),
     generate_now: formData.get("generate_now") === "true",
@@ -145,30 +156,25 @@ export async function createRecurringRule(
   const validated = recurringRuleSchema.safeParse(rawData);
 
   if (!validated.success) {
-    return {
-      errors: validated.error.flatten().fieldErrors,
-    };
+    return { errors: validated.error.flatten().fieldErrors };
   }
 
   const { generate_now, ...ruleData } = validated.data;
 
-  // Create the recurring rule
   const { data: rule, error: ruleError } = await supabase
     .from("recurring_rules")
     .insert({
       user_id: user.id,
       ...ruleData,
-      category_id: ruleData.category_id || null,
     })
     .select()
     .single();
 
-  if (ruleError) {
+  if (ruleError || !rule) {
     console.error("Error creating recurring rule:", ruleError);
     return { error: "Failed to create recurring rule" };
   }
 
-  // If "generate now" is checked, create the first expense immediately
   if (generate_now) {
     const { data: expense, error: expenseError } = await supabase
       .from("expenses")
@@ -176,7 +182,7 @@ export async function createRecurringRule(
         user_id: user.id,
         amount: ruleData.amount,
         currency: ruleData.currency,
-        category_id: ruleData.category_id || null,
+        category_id: ruleData.category_id,
         description: ruleData.description,
         date: ruleData.next_due_date,
         is_recurring: true,
@@ -186,24 +192,24 @@ export async function createRecurringRule(
 
     if (expenseError) {
       console.error("Error creating immediate expense:", expenseError);
-      // Don't fail the whole operation, just log
-    } else {
-      // Record the execution for idempotency
-      await supabase.from("recurring_rule_executions").insert({
-        rule_id: rule.id,
-        execution_date: ruleData.next_due_date,
-        expense_id: expense.id,
-      });
-
-      // Update the rule's next_due_date to the next cycle
+    } else if (expense) {
+      // Execute subsequent updates concurrently to reduce latency
       const nextDate = getNextDueDate(
         ruleData.next_due_date,
         ruleData.frequency,
       );
-      await supabase
-        .from("recurring_rules")
-        .update({ next_due_date: nextDate })
-        .eq("id", rule.id);
+
+      await Promise.all([
+        supabase.from("recurring_rule_executions").insert({
+          rule_id: rule.id,
+          execution_date: ruleData.next_due_date,
+          expense_id: expense.id,
+        }),
+        supabase
+          .from("recurring_rules")
+          .update({ next_due_date: nextDate })
+          .eq("id", rule.id),
+      ]);
     }
   }
 
@@ -218,28 +224,28 @@ export async function updateRecurringRule(
   prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    // Check if it's a standard JS Error object
+    if (err instanceof Error) {
+      return { error: err.message };
+    }
+    // Fallback for non-standard throws
+    return { error: "An unknown authentication error occurred" };
   }
 
   const ruleId = formData.get("id") as string;
+  if (!ruleId) return { error: "Rule ID is required" };
 
-  if (!ruleId) {
-    return { error: "Rule ID is required" };
-  }
-
-  // Parse and validate form data
   const rawData = {
     amount: formData.get("amount"),
     currency: formData.get("currency"),
-    category_id: formData.get("category_id") || null,
-    description: formData.get("description") || null,
+    category_id: formData.get("category_id"),
+    description: formData.get("description"),
     frequency: formData.get("frequency"),
     next_due_date: formData.get("next_due_date"),
   };
@@ -249,17 +255,12 @@ export async function updateRecurringRule(
     .safeParse(rawData);
 
   if (!validated.success) {
-    return {
-      errors: validated.error.flatten().fieldErrors,
-    };
+    return { errors: validated.error.flatten().fieldErrors };
   }
 
   const { error } = await supabase
     .from("recurring_rules")
-    .update({
-      ...validated.data,
-      category_id: validated.data.category_id || null,
-    })
+    .update(validated.data)
     .eq("id", ruleId)
     .eq("user_id", user.id);
 
@@ -273,14 +274,18 @@ export async function updateRecurringRule(
 }
 
 export async function deleteRecurringRule(id: string): Promise<ActionState> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    // Check if it's a standard JS Error object
+    if (err instanceof Error) {
+      return { error: err.message };
+    }
+    // Fallback for non-standard throws
+    return { error: "An unknown authentication error occurred" };
   }
 
   const { error } = await supabase
@@ -302,14 +307,18 @@ export async function toggleRecurringRule(
   id: string,
   isActive: boolean,
 ): Promise<ActionState> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    // Check if it's a standard JS Error object
+    if (err instanceof Error) {
+      return { error: err.message };
+    }
+    // Fallback for non-standard throws
+    return { error: "An unknown authentication error occurred" };
   }
 
   const { error } = await supabase
@@ -328,17 +337,20 @@ export async function toggleRecurringRule(
 }
 
 export async function processRuleNow(ruleId: string): Promise<ActionState> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { error: "Not authenticated" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    // Check if it's a standard JS Error object
+    if (err instanceof Error) {
+      return { error: err.message };
+    }
+    // Fallback for non-standard throws
+    return { error: "An unknown authentication error occurred" };
   }
 
-  // Fetch the rule
   const { data: rule, error: ruleError } = await supabase
     .from("recurring_rules")
     .select("*")
@@ -346,13 +358,10 @@ export async function processRuleNow(ruleId: string): Promise<ActionState> {
     .eq("user_id", user.id)
     .single();
 
-  if (ruleError || !rule) {
-    return { error: "Rule not found" };
-  }
+  if (ruleError || !rule) return { error: "Rule not found" };
 
   const today = new Date().toISOString().split("T")[0];
 
-  // Check if already processed today
   const { data: existingExecution } = await supabase
     .from("recurring_rule_executions")
     .select("id")
@@ -360,11 +369,8 @@ export async function processRuleNow(ruleId: string): Promise<ActionState> {
     .eq("execution_date", today)
     .single();
 
-  if (existingExecution) {
-    return { error: "Rule already processed for today" };
-  }
+  if (existingExecution) return { error: "Rule already processed for today" };
 
-  // Create the expense
   const { data: expense, error: expenseError } = await supabase
     .from("expenses")
     .insert({
@@ -379,24 +385,25 @@ export async function processRuleNow(ruleId: string): Promise<ActionState> {
     .select("id")
     .single();
 
-  if (expenseError) {
+  if (expenseError || !expense) {
     console.error("Error creating expense:", expenseError);
     return { error: "Failed to create expense" };
   }
 
-  // Record execution
-  await supabase.from("recurring_rule_executions").insert({
-    rule_id: ruleId,
-    execution_date: today,
-    expense_id: expense.id,
-  });
-
-  // Update next_due_date
+  // Execute subsequent updates concurrently
   const nextDate = getNextDueDate(today, rule.frequency);
-  await supabase
-    .from("recurring_rules")
-    .update({ next_due_date: nextDate })
-    .eq("id", ruleId);
+
+  await Promise.all([
+    supabase.from("recurring_rule_executions").insert({
+      rule_id: ruleId,
+      execution_date: today,
+      expense_id: expense.id,
+    }),
+    supabase
+      .from("recurring_rules")
+      .update({ next_due_date: nextDate })
+      .eq("id", ruleId),
+  ]);
 
   revalidatePath("/recurring");
   revalidatePath("/expenses");

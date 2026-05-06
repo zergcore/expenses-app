@@ -2,10 +2,10 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-export async function createClient() {
+export async function createClient<Database>() {
   const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -36,7 +36,8 @@ export async function createClient() {
  *
  * IMPORTANT: Never expose the service role key to the client!
  */
-export function createServiceClient() {
+// 3. We add <Database = any> to the service client signature
+export function createServiceClient<Database>() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -47,7 +48,8 @@ export function createServiceClient() {
     );
   }
 
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
+  // 4. We pass <Database> down to the standard supabase-js client
+  return createSupabaseClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
