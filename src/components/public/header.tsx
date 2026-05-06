@@ -4,7 +4,7 @@ import { LocaleSwitcher } from "../layout/locale-switcher";
 import { ThemeSwitcher } from "../layout/theme-switcher";
 import { Button } from "../ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetTrigger } from "../ui/sheet";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { User } from "@supabase/supabase-js";
 import { Isotipo } from "../logo/Isotipo";

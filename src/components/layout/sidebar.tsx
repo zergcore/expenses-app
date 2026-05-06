@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
@@ -12,7 +12,6 @@ import {
   Settings,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import Image from "next/image";
 import { Isotipo } from "../logo/Isotipo";
 
 const navigation = [
@@ -41,9 +40,9 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-6">
-        <span className="text-lg font-semibold tracking-tight">
+        <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
           <Isotipo width={100} height={100} />
-        </span>
+        </Link>
       </div>
 
       {/* Navigation */}

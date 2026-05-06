@@ -20,7 +20,7 @@ import {
 import { Menu, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { signout } from "@/actions/auth";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { LocaleSwitcher } from "./locale-switcher";
 import { ThemeSwitcher } from "./theme-switcher";
@@ -55,9 +55,9 @@ export function Header({ user }: HeaderProps) {
             <Sidebar />
           </SheetContent>
         </Sheet>
-        <span className="text-lg font-semibold">
+        <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
           <Isotipo width={40} height={40} />
-        </span>
+        </Link>
       </div>
 
       {/* Desktop - empty left side */}
