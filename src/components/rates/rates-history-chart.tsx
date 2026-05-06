@@ -75,7 +75,7 @@ export function RatesHistoryChart({ data }: RatesHistoryChartProps) {
 
   // Calculate domain for Y axis with some padding
   const validRates = data
-    .flatMap((d) => [d.usd, d.usdt])
+    .flatMap((d) => [d.usd, d.usdt, d.eur])
     .filter((v): v is number => v !== null);
 
   const minRate = validRates.length > 0 ? Math.min(...validRates) : 0;
@@ -155,6 +155,16 @@ export function RatesHistoryChart({ data }: RatesHistoryChartProps) {
                 dataKey="usdt"
                 name={t("usdt_binance")}
                 stroke="#10b981"
+                strokeWidth={2}
+                dot={{ r: 3 }}
+                activeDot={{ r: 5 }}
+                connectNulls
+              />
+              <Line
+                type="monotone"
+                dataKey="eur"
+                name={t("eur_bcv")}
+                stroke="#f59e0b"
                 strokeWidth={2}
                 dot={{ r: 3 }}
                 activeDot={{ r: 5 }}
