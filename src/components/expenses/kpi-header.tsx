@@ -52,7 +52,7 @@ export const KPIHeader = () => {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Budget Summary - Mini Donut */}
-      <Card className="relative overflow-hidden bg-gradient-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
+      <Card className="relative bg-gradient-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
         {/* Decorative accent */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
         <CardContent className="p-5">
