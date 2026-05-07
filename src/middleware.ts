@@ -90,6 +90,9 @@ export async function middleware(request: NextRequest) {
     response.cookies.set("NEXT_LOCALE", detectedLocale, {
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: "/",
+      // httpOnly intentionally false — needed by client-side LocaleSwitcher to read current locale
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
     });
 
     // Set x-pathname header for locale detection in server components
