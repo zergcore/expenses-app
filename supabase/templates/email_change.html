@@ -5,37 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Confirm your new email</title>
 <style>
-  body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; }
-  a.cta:hover { background-color: #333333 !important; }
+  body { margin: 0; padding: 0; background-color: #fafafa; }
+  a.cta:hover { background-color: #7a6449 !important; }
 </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
+<body style="margin: 0; padding: 0; background-color: #fafafa;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #fafafa;">
     <tr>
       <td align="center" style="padding: 32px 16px;">
-        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 12px;">
-          <!-- Header -->
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 8px; border: 1px solid #d4d4d4;">
+
+          <!-- Brand accent bar -->
           <tr>
-            <td align="center" style="padding: 32px 32px 0;">
-              <img src="https://venezuela-expenses-tracker.vercel.app/og-logo.png" alt="Fin" width="48" height="48" style="display: block; width: 48px; height: 48px; border: 0;" />
+            <td style="background-color: #8b7355; height: 4px; border-radius: 8px 8px 0 0; font-size: 0; line-height: 0;">&nbsp;</td>
+          </tr>
+
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding: 28px 32px 8px;">
+              <img src="https://venezuela-expenses-tracker.vercel.app/og-logo.png" alt="Fin" width="80" height="80" style="display: block; width: 80px; height: 80px; border: 0;" />
             </td>
           </tr>
+
           <!-- Body -->
           <tr>
-            <td style="padding: 24px 32px 32px;">
-              <h1 style="font-size: 22px; line-height: 1.3; margin: 16px 0 12px; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Confirm your new email</h1>
-              <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #404040; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">You requested to change the email on your Fin account. Click below to confirm.</p>
-              <a href="{{ .ConfirmationURL }}" class="cta" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; margin: 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px;">Confirm New Email</a>
-              <p style="font-size: 13px; line-height: 1.6; margin: 0; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">For your security, this confirmation must be done from both your old and new email addresses.</p>
+            <td style="padding: 8px 32px 32px;">
+              <h1 style="font-size: 22px; line-height: 28px; margin: 0 0 12px 0; color: #1a1a1a; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-weight: 700;">Confirm your new email</h1>
+              <p style="font-size: 15px; line-height: 24px; margin: 0 0 20px 0; color: #525252; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">You requested to change the email on your Fin account. Click below to confirm.</p>
+              <table cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                <tr>
+                  <td style="border-radius: 6px; background-color: #8b7355;">
+                    <a href="{{ .ConfirmationURL }}" class="cta" style="display: inline-block; background-color: #8b7355; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 6px; font-weight: 700; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; mso-padding-alt: 12px 28px;">Confirm New Email</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="font-size: 13px; line-height: 20px; margin: 20px 0 0 0; color: #737373; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">For your security, this confirmation must be done from both your old and new email addresses.</p>
             </td>
           </tr>
+
           <!-- Footer -->
           <tr>
-            <td style="padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; font-size: 13px; color: #888888; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-              <p style="margin: 0 0 8px;">© Fin · <a href="https://venezuela-expenses-tracker.vercel.app" style="color: #888888; text-decoration: underline;">venezuela-expenses-tracker.vercel.app</a></p>
-              <p style="margin: 0;">If you didn't expect this email, you can safely ignore it.</p>
+            <td style="padding: 16px 32px 24px; border-top: 1px solid #d4d4d4; text-align: center;">
+              <p style="font-size: 13px; line-height: 20px; margin: 0 0 4px 0; color: #737373; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">© Fin · <a href="https://venezuela-expenses-tracker.vercel.app" style="color: #8b7355; text-decoration: none;">venezuela-expenses-tracker.vercel.app</a></p>
+              <p style="font-size: 12px; line-height: 18px; margin: 0; color: #a3a3a3; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">If you didn't expect this email, you can safely ignore it.</p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>
