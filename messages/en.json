@@ -77,7 +77,11 @@
     "setNewPassword": "Set New Password",
     "setNewPasswordDescription": "Enter your new password below.",
     "register": "Register",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "noAccount": "Don't have an account?",
+    "signUp": "Sign up",
+    "alreadyHaveAccount": "Already have an account?",
+    "signIn": "Sign in"
   },
   "Profile": {
     "title": "Profile",

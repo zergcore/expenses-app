@@ -210,15 +210,16 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
-[auth.email.smtp]
-enabled = true
-host = "smtp.resend.com"
-port = 465
-user = "resend"
-pass = "env(RESEND_API_KEY)"
-admin_email = "fin@zergcore.dev"
-sender_name = "Fin"
+# Production SMTP is configured via the Supabase dashboard (Settings → Auth → SMTP),
+# not here — keeping this commented out preserves local Inbucket email capture.
+# [auth.email.smtp]
+# enabled = true
+# host = "smtp.resend.com"
+# port = 465
+# user = "resend"
+# pass = "env(RESEND_API_KEY)"
+# admin_email = "fin@zergcore.dev"
+# sender_name = "Fin"
 
 [auth.email.template.confirmation]
 subject = "Confirm your Fin account"

@@ -80,7 +80,11 @@
     "setNewPassword": "Establecer Nueva Contraseña",
     "setNewPasswordDescription": "Ingresa tu nueva contraseña a continuación.",
     "register": "Registrarse",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "noAccount": "¿No tienes una cuenta?",
+    "signUp": "Regístrate",
+    "alreadyHaveAccount": "¿Ya tienes una cuenta?",
+    "signIn": "Inicia sesión"
   },
   "Profile": {
     "title": "Perfil",

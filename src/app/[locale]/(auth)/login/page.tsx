@@ -75,13 +75,22 @@ export default function LoginPage() {
             process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
           }/auth/callback`}
         />
-        <div className="mt-4 text-center text-sm">
+        <div className="mt-4 flex flex-col items-center gap-2 text-center text-sm">
           <Link
             href="/forgot-password"
             className="text-muted-foreground hover:text-primary underline underline-offset-4"
           >
             {t("Auth.forgotPassword")}
           </Link>
+          <span className="text-muted-foreground">
+            {t("Auth.noAccount")}{" "}
+            <Link
+              href="/register"
+              className="text-primary hover:text-primary/80 underline underline-offset-4 font-medium"
+            >
+              {t("Auth.signUp")}
+            </Link>
+          </span>
         </div>
       </CardContent>
     </Card>
