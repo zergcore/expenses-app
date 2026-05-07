@@ -1,8 +1,7 @@
 "use client";
 
-import { Auth } from "@supabase/auth-ui-react";
-import { ThemeSupa } from "@supabase/auth-ui-shared";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState, useTransition } from "react";
+import { resetPassword } from "@/actions/auth";
 import {
   Card,
   CardContent,
@@ -11,23 +10,50 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
+const COOLDOWN_SECONDS = 60;
+
 export default function ForgotPasswordPage() {
-  const supabase = createClient();
-  const [mounted, setMounted] = useState(false);
   const t = useTranslations();
+  const [state, setState] = useState<{ error?: string; success?: boolean }>({});
+  const [cooldown, setCooldown] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startTransition(async () => {
+      try {
+        const result = await resetPassword({}, formData);
+        setState(result);
+      } catch {
+        setState({ error: "Unable to connect. Please check your connection and try again." });
+      } finally {
+        setCooldown(COOLDOWN_SECONDS);
+      }
+    });
+  };
+
+  // Decrement cooldown every second
   useEffect(() => {
-    // Avoids hydration mismatch and sync logic error
-    const timer = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(timer);
-  }, []);
+    if (cooldown <= 0) return;
+    const id = setInterval(
+      () => setCooldown((s) => Math.max(0, s - 1)),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [cooldown]);
 
-  if (!mounted) return null;
+  const isDisabled = isPending || cooldown > 0;
+  const buttonLabel = isPending
+    ? t("Auth.resetSubmitting")
+    : t("Auth.sendResetLink");
 
   return (
     <div className="flex h-screen items-center justify-center bg-muted/40 p-4">
@@ -40,70 +66,54 @@ export default function ForgotPasswordPage() {
             {t("Auth.forgotPasswordDescription")}
           </CardDescription>
         </CardHeader>
+
         <CardContent>
-          <Auth
-            supabaseClient={supabase}
-            view="forgotten_password"
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: "var(--primary)",
-                    brandAccent: "var(--primary)",
-                    inputBackground: "transparent",
-                    inputText: "var(--foreground)",
-                    inputBorder: "var(--border)",
-                    inputLabelText: "var(--foreground)",
-                  },
-                  radii: {
-                    borderRadiusButton: "var(--radius)",
-                    inputBorderRadius: "var(--radius)",
-                  },
-                },
-              },
-              className: {
-                button:
-                  "bg-primary text-primary-foreground hover:bg-primary/90 w-full",
-                input: "bg-background",
-                label: "text-foreground",
-              },
-            }}
-            providers={[]}
-            showLinks={false}
-            redirectTo={`${
-              process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-            }/auth/callback?next=/update-password`}
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">{t("Auth.email")}</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                disabled={isDisabled}
+              />
+            </div>
+
+            {state?.error && (
+              <p className="text-sm text-destructive">{state.error}</p>
+            )}
+
+            {/* Always show generic message after first submission — never reveal if email exists */}
+            {state?.success && (
+              <p className="text-sm text-muted-foreground">
+                {t("Auth.resetSent")}
+              </p>
+            )}
+
+            {cooldown > 0 && (
+              <p className="text-sm text-center text-muted-foreground">
+                {t("Auth.resendIn", { seconds: cooldown })}
+              </p>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isDisabled}>
+              {buttonLabel}
+            </Button>
+          </form>
         </CardContent>
+
         <CardFooter>
-          <ButtonLink
+          <Link
             href="/login"
-            label={t("Auth.backToLogin")}
-            icon={<ArrowLeft className="h-4 w-4" />}
-          />
+            className="flex w-full items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("Auth.backToLogin")}
+          </Link>
         </CardFooter>
       </Card>
     </div>
-  );
-}
-
-function ButtonLink({
-  href,
-  label,
-  icon,
-}: {
-  href: string;
-  label: string;
-  icon?: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="flex w-full items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
-    >
-      {icon}
-      {label}
-    </Link>
   );
 }

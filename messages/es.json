@@ -84,7 +84,10 @@
     "noAccount": "¿No tienes una cuenta?",
     "signUp": "Regístrate",
     "alreadyHaveAccount": "¿Ya tienes una cuenta?",
-    "signIn": "Inicia sesión"
+    "signIn": "Inicia sesión",
+    "resetSent": "Si este correo está registrado, recibirás un enlace en breve.",
+    "resendIn": "Reenviar en {seconds}s",
+    "resetSubmitting": "Enviando…"
   },
   "Profile": {
     "title": "Perfil",

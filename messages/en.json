@@ -81,7 +81,10 @@
     "noAccount": "Don't have an account?",
     "signUp": "Sign up",
     "alreadyHaveAccount": "Already have an account?",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "resetSent": "If this email is registered, you'll receive a reset link shortly.",
+    "resendIn": "Resend in {seconds}s",
+    "resetSubmitting": "Sending…"
   },
   "Profile": {
     "title": "Profile",
