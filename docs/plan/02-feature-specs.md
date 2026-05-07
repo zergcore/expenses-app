@@ -654,3 +654,871 @@ graph TD
 | 5 — Daily Granularity | M (~12 hrs) | Medium |
 | 6 — Shareable Image | L (~20 hrs) | Medium |
 | **Total** | **~43 hrs** | |
+
+---
+
+---
+
+# Phase 2 — Fix Specs & Acceptance Criteria (Batch 2: 13-Item Fix Batch)
+
+> Decisions locked from clarifying-question answers on 2026-05-06.
+
+---
+
+### Item 1 — Email Branding
+
+**Type:** Feature
+**Severity:** High
+**Size:** M
+
+**User story / outcome:** When Fin sends any transactional email (signup confirmation, password reset, email change, security alerts), it arrives from a recognizable `fin@zergcore.dev` address inside a branded HTML template that matches the app's visual identity — not a generic Supabase or sandbox email.
+
+**Scope (in):**
+- Set up `zergcore.dev` subdomain (e.g., `mail.zergcore.dev`) in Resend with DKIM/SPF/DMARC records.
+- Sender address: `Fin <fin@zergcore.dev>`.
+- Three branded HTML email templates: signup confirmation, password reset, email change.
+- Wire Supabase auth emails to use these templates via `supabase/config.toml` custom template paths.
+- Add `RESEND_API_KEY` and `DEVELOPER_EMAIL` to `.env.example`.
+- Update existing `alert-email.ts` sender from `onboarding@resend.dev` to `fin@zergcore.dev`.
+
+**Scope (out):**
+- Purchasing a dedicated domain (`fin.app` or similar).
+- Email unsubscribe/preference management.
+- Rich media (images, hero photos) in templates beyond the logo.
+- Plain-text preview optimization (default Supabase plain-text is acceptable for v1).
+
+**UX behavior:**
+- All auth emails arrive from `Fin <fin@zergcore.dev>`.
+- HTML template: Fin isotipo logo centered at top, brand color accent (`--primary`), clean sans-serif body, clear CTA button. Light-mode design (email clients don't reliably support dark mode).
+- Footer: "© Fin · zergcore.dev" + unsubscribe placeholder (informational).
+- Password reset email: subject "Reset your Fin password", CTA "Reset Password", 1-hour expiry note.
+- Signup confirmation: subject "Confirm your Fin account", CTA "Confirm Email".
+- Email change: subject "Confirm your new email", two confirmation steps noted (both old and new email must confirm, per `double_confirm_changes = true`).
+
+**Technical approach:**
+- Files to touch: `supabase/config.toml`, `src/lib/alert-email.ts`, `.env.example`.
+- New files: `supabase/templates/confirmation.html`, `supabase/templates/recovery.html`, `supabase/templates/email_change.html`.
+- Supabase template variables: `{{ .ConfirmationURL }}`, `{{ .SiteURL }}`, `{{ .Email }}`.
+- Wire via `config.toml`:
+  ```toml
+  [auth.email.smtp]
+  enabled = true
+  host = "smtp.resend.com"
+  port = 465
+  user = "resend"
+  pass = "env(RESEND_API_KEY)"
+  admin_email = "fin@zergcore.dev"
+  sender_name = "Fin"
+
+  [auth.email.template.confirmation]
+  subject = "Confirm your Fin account"
+  content_path = "./supabase/templates/confirmation.html"
+
+  [auth.email.template.recovery]
+  subject = "Reset your Fin password"
+  content_path = "./supabase/templates/recovery.html"
+
+  [auth.email.template.email_change]
+  subject = "Confirm your new email"
+  content_path = "./supabase/templates/email_change.html"
+  ```
+- New dependency: none (Resend already installed; SMTP is the wiring mechanism here).
+- Server vs client: template rendering is server/Supabase-side. No component changes.
+- RLS implications: none.
+- Security: DKIM/SPF/DMARC on `zergcore.dev` prevents email spoofing.
+
+**Acceptance criteria:**
+- [ ] Resend dashboard shows `zergcore.dev` as a verified sending domain with DKIM and SPF passing.
+- [ ] Registering a new account triggers a confirmation email from `fin@zergcore.dev` with the Fin HTML template.
+- [ ] Requesting a password reset sends a branded email from `fin@zergcore.dev`.
+- [ ] Email change triggers branded emails to both old and new address.
+- [ ] Developer alert email (`alert-email.ts`) also sends from `fin@zergcore.dev`.
+- [ ] `.env.example` includes `RESEND_API_KEY`, `DEVELOPER_EMAIL`, `CRON_SECRET`.
+- [ ] Local dev uses Supabase Inbucket (no real emails sent) — no code change required.
+
+**Rollback plan:** If Resend SMTP fails, comment out `[auth.email.smtp]` in `config.toml` to revert to Supabase's built-in email. Sender reverts to Supabase default. Alert email falls back gracefully (already guards with `if (!apiKey) return`).
+
+---
+
+### Item 2 — Password-Reset Rate Limiting
+
+**Type:** Security
+**Severity:** High
+**Size:** S
+
+**User story / outcome:** A user who requests a password reset gets a clear cooldown — they cannot flood their own inbox or abuse the endpoint, and the app communicates the wait time gracefully.
+
+**Scope (in):**
+- Raise Supabase `max_frequency` from `"1s"` to `"60s"` (server-enforced per email address).
+- Server Action `resetPassword` gains an in-memory / header-level guard: if the same email submitted a reset in the last 60 seconds (tracked via a short-lived Supabase DB record or a response check), return a cooldown error.
+- Client-side: after a successful submission, disable the submit button for 60 seconds with a countdown ("Resend in 47s").
+- Static user message on submission: "If this email is registered, you'll receive a reset link shortly. Please wait before requesting again."
+
+**Scope (out):**
+- Per-IP rate limiting at middleware level (covered by #5 OWASP).
+- Persistent attempt logging (that's #4 suspicious activity).
+- Email-level cooldown beyond 60 seconds (Supabase's `email_sent = 2/hour` is the coarse outer limit).
+
+**UX behavior:**
+- Happy path: user enters email → clicks submit → button shows "Sending…" → on success, button disables with 60s countdown → message "If this email is registered, you'll receive a reset link shortly."
+- During cooldown: button shows "Resend in 47s" (counting down), is disabled.
+- Error from Supabase (rate limit hit): show same static message — never reveal whether an email exists.
+- After 60s: button re-enables normally.
+
+**i18n strings (new):**
+
+| Key | EN | ES |
+|---|---|---|
+| `Auth.resetSent` | `If this email is registered, you'll receive a reset link shortly.` | `Si este correo está registrado, recibirás un enlace en breve.` |
+| `Auth.resendIn` | `Resend in {seconds}s` | `Reenviar en {seconds}s` |
+
+**Technical approach:**
+- Files to touch: `supabase/config.toml` (`max_frequency = "60s"`), `src/app/[locale]/(auth)/forgot-password/page.tsx` (switch from Auth UI to a custom form using `resetPassword` Server Action).
+- The forgot-password page currently uses `<Auth view="forgotten_password">` — replacing it with a custom `<form>` + `useFormState` (React 19 `useActionState`) gives full control over the cooldown UI.
+- Client countdown: `useState(cooldownSeconds)` + `useEffect` interval decrementing each second.
+- Server-side: Supabase's own `max_frequency = "60s"` is the authoritative guard. The client countdown is UX only — security lives on the server.
+- No new dependency. No DB migration.
+
+**Acceptance criteria:**
+- [ ] `supabase/config.toml` shows `max_frequency = "60s"`.
+- [ ] Submitting the form disables the button for 60 seconds with a live countdown.
+- [ ] The success message is always shown (does not reveal whether the email exists).
+- [ ] A second submission within 60s returns an error from Supabase and shows the cooldown UI — not a new email.
+- [ ] TypeScript and lint pass.
+
+**Rollback plan:** Revert `max_frequency` to `"1s"` in `config.toml`. Client countdown change has zero risk.
+
+---
+
+### Item 3 — Duplicate "Forgot Password" Link
+
+**Type:** Bug Fix
+**Severity:** Low
+**Size:** XS
+
+**User story / outcome:** The login page shows exactly one "Forgot your password?" link, not two.
+
+**Scope (in):**
+- Add `showLinks={false}` to the `<Auth>` component in `src/app/[locale]/(auth)/login/page.tsx`.
+
+**Scope (out):**
+- Any restyling of the existing custom link.
+- Changes to the forgot-password page itself.
+
+**UX behavior:**
+- One "Forgot your password?" link, styled with the existing custom `<Link>` component (already present at lines 77–84 of the login page).
+
+**Technical approach:**
+- One file, one prop change: `<Auth ... showLinks={false} />`.
+- No new dependencies, no i18n changes, no DB changes.
+
+**Acceptance criteria:**
+- [ ] Exactly one "Forgot your password?" link is visible on the login page.
+- [ ] The remaining link navigates to `/{locale}/forgot-password`.
+- [ ] The `<Auth>` component's email/password fields still render correctly.
+
+---
+
+### Item 4 — Suspicious-Activity Emails
+
+**Type:** Feature + Security
+**Severity:** High
+**Size:** L
+
+**User story / outcome:** When something unusual happens on a user's account — a sign-in from a new country, repeated failed login attempts, or multiple password-change requests in a short window — Fin sends an email alert so the user can take action.
+
+**Scope (in):**
+- Replace `@supabase/auth-ui-react`'s `<Auth>` on login page with a custom sign-in form (Server Action `signIn`).
+- `signIn` Server Action reads `x-vercel-ip-country` header for country detection.
+- Three suspicious triggers for v1:
+  1. Sign-in from a country different from the user's last-known country.
+  2. ≥ 3 failed sign-in attempts from the same IP within 15 minutes.
+  3. ≥ 2 password-change requests within 24 hours.
+- Each trigger: write a `login_events` record + send a Resend email to the user.
+- Email includes a "This wasn't me — Secure my account" link → a Server Action that calls `supabase.auth.admin.signOut(userId, { scope: 'global' })` (terminates all sessions).
+- Persist events in a new `login_events` table (RLS: user can read own events).
+
+**Scope (out):**
+- Admin dashboard for viewing events (user-facing only).
+- Impossible-travel detection (requires device fingerprinting — future).
+- MFA enforcement on suspicious sign-in (future).
+- Blocking sign-ins (v1 is detect + alert, not block).
+
+**UX behavior:**
+- Happy path: user logs in normally — no change to experience.
+- New country detected: sign-in succeeds + security email sent in background.
+- Failed attempts (≥ 3 in 15 min): sign-in rejected with generic "Invalid credentials" message (no revealing of attempt count) + security email to the account holder's email.
+- Password change spam: email sent silently after 2nd change within 24h.
+- Security email content: "We noticed a sign-in to your Fin account from [Country]. If this was you, no action needed. If not, click below to secure your account." → "Secure My Account" button.
+- "Secure My Account" link: one-time token in URL → server validates → signs out all sessions → redirects to login with message "All sessions terminated. Please sign in again."
+
+**i18n strings (new):**
+
+| Key | EN | ES |
+|---|---|---|
+| `Auth.signingIn` | `Signing in…` | `Iniciando sesión…` |
+| `Auth.signIn` | `Sign in` | `Iniciar sesión` |
+| `Auth.invalidCredentials` | `Invalid email or password.` | `Correo o contraseña incorrectos.` |
+| `Security.emailSubject` | `New sign-in to your Fin account` | `Nuevo inicio de sesión en tu cuenta Fin` |
+| `Security.sessionTerminated` | `All sessions have been terminated. Please sign in again.` | `Todas las sesiones han sido cerradas. Por favor inicia sesión de nuevo.` |
+
+**Technical approach:**
+- New files:
+  - `src/actions/auth-events.ts` — `signIn(formData)`, `terminateAllSessions(token)` Server Actions.
+  - `src/lib/suspicious-activity.ts` — `detectSuspiciousActivity(userId, event)` helper; checks thresholds against `login_events`; sends Resend email.
+  - `src/components/auth/sign-in-form.tsx` — custom `"use client"` form using `useActionState` + the `signIn` Server Action.
+  - `supabase/templates/security-alert.html` — branded security email template.
+- Files to touch:
+  - `src/app/[locale]/(auth)/login/page.tsx` — replace `<Auth>` with `<SignInForm>`.
+  - `src/lib/alert-email.ts` — add `sendSecurityAlert(email, country, terminateUrl)`.
+- New Supabase migration: `login_events` table.
+
+```sql
+CREATE TABLE public.login_events (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  event_type TEXT NOT NULL, -- 'sign_in', 'failed_attempt', 'password_change'
+  ip_address TEXT,
+  country_code TEXT,
+  user_agent TEXT,
+  is_suspicious BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.login_events ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own login events"
+  ON public.login_events FOR SELECT USING (auth.uid() = user_id);
+-- INSERT via service role only (from Server Actions using service client)
+```
+
+- `signIn` uses `supabase.auth.signInWithPassword` inside a Server Action so the server has full access to request headers (`x-vercel-ip-country`, `user-agent`, IP from `x-forwarded-for`).
+- Country comparison: load user's last sign-in country from `login_events` (most recent `sign_in` record). If different → flag.
+- Failed attempts: count `login_events` where `event_type = 'failed_attempt'` and `ip_address = currentIp` and `created_at > NOW() - INTERVAL '15 minutes'` — if ≥ 3, send alert.
+- Terminate-all-sessions token: a short-lived Supabase JWT or a one-time token stored in a `session_terminate_tokens` table (simpler: use a signed URL with a HMAC of `userId + timestamp`, validated server-side).
+- Security implications: Server Action validates CSRF via Next.js built-in origin check. IP from `x-forwarded-for` (trust first hop only). Never log passwords.
+- RLS: `login_events` INSERT via `createServiceClient()`.
+
+**Acceptance criteria:**
+- [ ] Login page shows a custom email/password form (not `@supabase/auth-ui-react` Auth component).
+- [ ] Signing in from a different country (simulated via `x-vercel-ip-country` header) triggers a security email to the user.
+- [ ] 3+ failed attempts from the same IP within 15 minutes trigger a security email.
+- [ ] 2+ password-change requests within 24 hours trigger a security email.
+- [ ] Security email arrives from `fin@zergcore.dev` with Fin branding.
+- [ ] "Secure My Account" link in the email terminates all sessions and redirects to login.
+- [ ] Sign-in events are stored in `login_events` table.
+- [ ] A failed sign-in attempt shows "Invalid email or password." (no enumeration).
+- [ ] TypeScript, lint, and `npx tsc --noEmit` pass.
+
+**Test plan:**
+- Unit: `detectSuspiciousActivity` with mocked DB responses — test each threshold.
+- Manual QA: simulate new-country header; attempt 3 failed logins; verify email arrives in Resend dashboard.
+
+**Rollback plan:** If the custom sign-in form causes issues, restore `<Auth>` component on the login page (one-line revert). The `login_events` table is additive — no rollback needed for the migration.
+
+---
+
+### Item 5 — OWASP Compliance
+
+**Type:** Security
+**Severity:** Critical
+**Size:** L
+
+**User story / outcome:** Fin meets OWASP ASVS Level 1 (baseline) across all controls, with Level 2 applied to authentication and session management — the most critical attack surface for a personal finance app.
+
+**Scope (in):**
+- Security headers in `next.config.ts`: CSP (permissive allowlist), HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
+- Password policy: `minimum_password_length = 8`, `password_requirements = "letters_digits"`, `secure_password_change = true`.
+- RLS gaps: add INSERT to `notifications`, DELETE to `notification_preferences`, `financial_insights`, `storage.objects` (avatars).
+- `.env.example`: add `RESEND_API_KEY`, `CRON_SECRET`, `DEVELOPER_EMAIL`, `SUPPORT_EMAIL`.
+- `next/image` `remotePatterns`: add Supabase storage hostname.
+- NEXT_LOCALE cookie: add `secure`, `sameSite: "lax"` flags in middleware.
+- Auth redirect allowlist: document production URL must be added to Supabase Cloud dashboard.
+- CAPTCHA: not enabled in v1 (Turnstile used for support form in #12 instead).
+
+**Scope (out):**
+- MFA (Supabase Pro feature).
+- Web Application Firewall.
+- Penetration test.
+- Logging infrastructure (structured log service).
+
+**Technical approach:**
+- `next.config.ts` — add `headers()` returning security header array:
+
+```typescript
+const securityHeaders = [
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-eval needed by Recharts/Next.js dev; tighten in future
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://*.supabase.co https://*.supabase.in",
+      "connect-src 'self' https://*.supabase.co https://*.supabase.in wss://*.supabase.co https://api.resend.com",
+      "font-src 'self'",
+      "frame-ancestors 'none'",
+    ].join("; "),
+  },
+];
+```
+
+- `supabase/config.toml`: `minimum_password_length = 8`, `password_requirements = "letters_digits"`, `secure_password_change = true`.
+- New migration for missing RLS policies (additive):
+
+```sql
+-- notifications INSERT (service role inserts; this policy allows system inserts)
+-- No user INSERT policy needed — system-only writes use service client
+
+-- DELETE policies
+CREATE POLICY "Users can delete own notification preferences"
+  ON public.notification_preferences FOR DELETE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own financial insights"
+  ON public.financial_insights FOR DELETE USING (auth.uid() = user_id);
+
+-- Storage avatar DELETE
+CREATE POLICY "Users can delete own avatars"
+  ON storage.objects FOR DELETE USING (auth.uid() = owner AND bucket_id = 'avatars');
+```
+
+- Middleware cookie fix: add `secure: true, sameSite: "lax"` to `NEXT_LOCALE` cookie.
+- `next.config.ts` `images.remotePatterns`: add Supabase project storage pattern.
+
+**Acceptance criteria:**
+- [ ] `curl -I https://[deployed-url]` returns all security headers (X-Frame-Options, X-Content-Type-Options, HSTS, CSP, Referrer-Policy, Permissions-Policy).
+- [ ] Attempting password change without re-authentication is rejected (Supabase `secure_password_change = true`).
+- [ ] Password < 8 characters is rejected at registration.
+- [ ] Password with only letters is rejected (requires letters + digits).
+- [ ] `RESEND_API_KEY`, `CRON_SECRET`, `DEVELOPER_EMAIL`, `SUPPORT_EMAIL` are documented in `.env.example`.
+- [ ] `next/image` renders avatar images without domain errors.
+- [ ] `NEXT_LOCALE` cookie has `Secure` and `SameSite=Lax` flags (inspect in DevTools).
+- [ ] DELETE on `notification_preferences`, `financial_insights`, and `avatars` storage objects works for the owning user.
+- [ ] TypeScript and lint pass. Build succeeds.
+
+**Rollback plan:** Security headers are additive and can be removed from `next.config.ts` without breaking functionality. Config.toml password policy change affects only new registrations. RLS policies are additive. Cookie flag change is safe.
+
+---
+
+### Item 6 — Avatar Not Rendering in Header
+
+**Type:** Bug Fix
+**Severity:** Medium
+**Size:** XS
+
+**User story / outcome:** When a user has uploaded a profile photo, their avatar appears in the top-right corner of every dashboard page, not just on the profile page.
+
+**Scope (in):**
+- Add `<AvatarImage src={user.user_metadata?.avatar_url ?? ""} />` to the `Avatar` in `src/components/layout/header.tsx`.
+- Import `AvatarImage` from `@/components/ui/avatar`.
+
+**Scope (out):**
+- Fallback generation logic changes (initials fallback already works correctly).
+- next/image optimization for avatars (the `<AvatarImage>` renders a plain `<img>` via Radix — fine for v1).
+
+**UX behavior:**
+- If user has `avatar_url`: circle shows the photo; fallback (`{initials}`) renders only if the image fails to load (Radix `Avatar` handles this automatically).
+- If user has no `avatar_url`: circle shows email initials as before.
+
+**Technical approach:**
+- One file: `src/components/layout/header.tsx`.
+- Change: add `import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"` (add `AvatarImage`) and insert `<AvatarImage src={user.user_metadata?.avatar_url ?? ""} alt="" />` before `<AvatarFallback>`.
+
+**Acceptance criteria:**
+- [ ] A user with an uploaded avatar sees their photo in the header after logging in.
+- [ ] A user without an avatar still sees email initials.
+- [ ] No console errors or broken image requests.
+
+---
+
+### Item 7 — Budget Circle Clipped
+
+**Type:** Bug Fix
+**Severity:** Medium
+**Size:** XS
+
+**User story / outcome:** The donut chart in the Budget Summary KPI card displays without its edges being clipped by the card container.
+
+**Scope (in):**
+- Remove `overflow-hidden` from the budget summary card in `src/components/expenses/kpi-header.tsx`.
+- If the gradient decorative accent requires `overflow-hidden`, reimplement it without the clip (e.g., scoped to a separate `div` inside the card, not the card itself).
+
+**Scope (out):**
+- Resizing or redesigning the donut chart.
+- Changes to `chart-card.tsx` in `ExpensesSidebar` (deferred to #8 expenses redesign).
+
+**UX behavior:**
+- The donut chart renders fully rounded with no square clip on any edge.
+- The decorative color accent at the top of the card continues to display.
+
+**Technical approach:**
+- `src/components/expenses/kpi-header.tsx`: on the first `Card`, remove `overflow-hidden` from `className`. Move the gradient accent `div` into a child `div` positioned absolutely inside the card, with `overflow-hidden` applied only to that inner `div`.
+
+**Acceptance criteria:**
+- [ ] The donut chart in the Budget Summary card is fully visible, no square clip.
+- [ ] The gradient top accent still displays.
+- [ ] No layout shifts or overflow on the card at any viewport width.
+
+---
+
+### Item 8 — Expenses View Redesign
+
+**Type:** UX / Feature
+**Severity:** Medium
+**Size:** M
+
+**User story / outcome:** The expenses page communicates financial status at a glance — it has a clear visual hierarchy, surfaces the analytical sidebar that was already built, and feels intentional rather than templated.
+
+**Scope (in):**
+- Surface `ExpensesSidebar` in the expenses page layout (it's built; it just isn't rendered).
+- Redesign the page into a two-column layout on desktop (main table left, sidebar right) and single-column on mobile (sidebar collapses below table or into a collapsible card).
+- Improve the empty state: icon + action-oriented copy + "Add your first expense →" CTA.
+- Improve the table footer: reduce visual noise, give USD total prominence.
+- Improve the KPI card section: one card gets visual emphasis (budget summary); others are secondary.
+- Fix the budget circle clipping (from #7, already specced separately).
+
+**Scope (out):**
+- New chart types beyond what's already in `ExpensesSidebar`.
+- Removing the `DataTable` (it stays; we improve its surroundings).
+- Animated transitions.
+
+**Design direction (minimalist + informative):**
+Fin's style: high signal-to-noise. The redesign takes cues from tools like Lunch Money and Actual Budget — clean typography, one clearly dominant number per section, restrained use of color (only for state changes: over-budget = red, on-track = primary).
+
+**ASCII wireframe — Desktop (≥ lg breakpoint):**
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Expenses                              [Add Expense] [Scan Receipt] │
+│  ◀ April 2026 ▶                                         [Export ↓]  │
+├──────────────────────────────────────────┬──────────────────────────┤
+│                                          │  ┌──────────────────┐   │
+│  ┌────────┐  ┌──────────┐  ┌──────────┐ │  │  Budget Overview  │   │
+│  │ Budget │  │  Daily   │  │ EOM Proj │ │  │   [donut chart]   │   │
+│  │Summary │  │  Avg     │  │          │ │  │   68% used        │   │
+│  │(emph.) │  │(secondary│  │(secondary│ │  │  $340 / $500      │   │
+│  └────────┘  └──────────┘  └──────────┘ │  ├──────────────────┤   │
+│  [Unbudgeted alert if any]               │  │  Daily Spending  │   │
+│                                          │  │  $12.40 / $16.67 │   │
+│  Search…           [ALL][VES][USD][USDT] │  ├──────────────────┤   │
+│  [All cats][Food][Transport][Shopping]   │  │  EOM Projection  │   │
+│  ┌──────────────────────────────────┐   │  │  $408 projected  │   │
+│  │ Date    Desc    Category  Amount │   │  └──────────────────┘   │
+│  │ May 6   Lunch   Food      $8.50  │   │                         │
+│  │ May 5   Bus     Transport $1.20  │   │                         │
+│  │ ...                              │   │                         │
+│  └──────────────────────────────────┘   │                         │
+│  [← Prev]                    [Next →]   │                         │
+└──────────────────────────────────────────┴─────────────────────────┘
+```
+
+**ASCII wireframe — Empty state:**
+
+```
+┌────────────────────────────────────────┐
+│  Expenses                  [Add Expense]│
+│  ◀ May 2026 ▶                          │
+│                                        │
+│         💸                             │
+│   No expenses yet this month           │
+│   Track your first expense to start    │
+│   building your financial picture.     │
+│                                        │
+│        [+ Add your first expense]      │
+└────────────────────────────────────────┘
+```
+
+**Technical approach:**
+- `src/app/[locale]/(dashboard)/expenses/page.tsx`: add `ExpensesSidebar` to the layout. Use a two-column CSS grid: `grid-cols-1 lg:grid-cols-[1fr_300px]`.
+- `src/components/expenses/kpi-header.tsx`: make the first card (Budget Summary) visually dominant — slightly larger or with a stronger accent; demote the other three to a supporting row.
+- `src/components/expenses/data-table.tsx`: improve empty state row — replace `h-24 text-center` plain text with an icon + message + CTA button.
+- `src/components/expenses/expense-chart/chart-card.tsx`: ensure `ExpensesSidebar` renders correctly once wired in (already built; minimal changes expected).
+- No new dependencies.
+
+**i18n strings (new):**
+
+| Key | EN | ES |
+|---|---|---|
+| `Expenses.empty_title` | `No expenses yet` | `Sin gastos aún` |
+| `Expenses.empty_description` | `Track your first expense to start building your financial picture.` | `Registra tu primer gasto para comenzar a construir tu panorama financiero.` |
+| `Expenses.empty_cta` | `Add your first expense` | `Agrega tu primer gasto` |
+
+**Acceptance criteria:**
+- [ ] On desktop (≥ lg), expenses page shows a two-column layout: table on the left, `ExpensesSidebar` on the right.
+- [ ] On mobile, layout is single-column; sidebar content appears below the table.
+- [ ] Budget Summary KPI card is visually distinct from the other three.
+- [ ] Empty state shows an icon, descriptive copy, and a CTA button that opens the expense form.
+- [ ] `ExpensesSidebar` budget donut chart renders without clipping (from fix #7).
+- [ ] TypeScript, lint, and build pass.
+
+---
+
+### Item 9 — Money-Conversion Library
+
+**Type:** Tech Debt / Security
+**Severity:** High
+**Size:** M
+
+**User story / outcome:** All currency arithmetic in Fin uses decimal-safe math — no floating-point rounding errors accumulate in totals or conversions.
+
+**Scope (in):**
+- Install `dinero.js` v2 (`@dinero.js/core` + `@dinero.js/currencies`).
+- Replace float arithmetic in `src/lib/currency-calculator.ts` with Dinero operations.
+- Replace `parseFloat(row.rate)` in `src/actions/rates.ts` with integer-based parsing (Dinero stores amounts as integers × a scale factor).
+- Remove the hardcoded `/ 1.08` EUR fallback magic number (dead code — the real fallback uses ECB Frankfurter API).
+- Keep DB column types as-is (`DECIMAL(12, 2)` and `DECIMAL(12, 4)`) — no DB migration needed.
+- No correction of existing stored `equivalents` JSONB values (the values came from real API data and float drift is negligible at the amounts stored; correcting them would add risk for marginal gain).
+
+**Scope (out):**
+- Replacing `formatCurrency` in `src/lib/utils.ts` (it uses `Intl.NumberFormat`, which is correct for display formatting).
+- Changing Zod schemas (amount validation at boundaries is acceptable as `number` with `.min(0)` for v1).
+- Server-side amount formatting (handled by Intl already).
+
+**Library choice — Dinero.js v2:**
+
+| | `dinero.js` v2 | `currency.js` | Custom `BigInt` |
+|---|---|---|---|
+| Bundle size | ~18 KB gzip | ~1.6 KB gzip | 0 KB |
+| Multi-currency | ✅ Native | ❌ Manual | Manual |
+| Decimal safety | ✅ Integer-based | ✅ Integer-based | ✅ |
+| API ergonomics | High (typed currencies) | Simple | Low |
+| Maintenance | ✅ Active | ✅ Active | N/A |
+| Verdict | **Best fit** for multi-currency Fin | Good for single-currency | Only if bundle is critical |
+
+Dinero.js v2 is the industry standard for multi-currency financial apps. Its typed currency objects (`USD`, `VES`, `EUR`) prevent mixing currencies accidentally — exactly the bug class Fin is vulnerable to today.
+
+**Technical approach:**
+- New dependency: `@dinero.js/core`, `@dinero.js/currencies`.
+- `src/lib/currency-calculator.ts`: rewrite `calculateEquivalents` and `sumByEquivalent` using `dinero`, `convert`, `add`, `toSnapshot`.
+- Rate representation: DB `DECIMAL(12, 4)` rates are read as strings → parsed to integer + scale for Dinero. E.g., rate `51.2345` → Dinero scale 4, integer `512345`.
+- `src/actions/rates.ts`: rates parsed as integers (multiply by 10^4, truncate) for use in Dinero conversions.
+- Test cases to cover (unit tests, even informal):
+  - `0.1 + 0.2 = 0.3` (not `0.30000000000000004`)
+  - Conversion: 10 USD × 51.23 VES/USD = 512.30 VES exactly
+  - Banker's rounding on display
+
+**Acceptance criteria:**
+- [ ] `@dinero.js/core` and `@dinero.js/currencies` are in `package.json`.
+- [ ] `src/lib/currency-calculator.ts` contains no raw float arithmetic (`*`, `/`, `+`, `-` on money amounts).
+- [ ] `calculateEquivalents(10, "USD", rates)` returns integer-safe VES, USDT, EUR equivalents.
+- [ ] The hardcoded `/ 1.08` line is removed.
+- [ ] `sumByEquivalent` accumulates values without float drift.
+- [ ] TypeScript compiles. Lint passes. Build succeeds.
+
+**Rollback plan:** The change is isolated to `currency-calculator.ts` and the rates parsing helper. Rolling back means reverting those two files. No DB changes are made.
+
+---
+
+### Item 10 — Monthly Rates: Decouple from Full-Page Re-render
+
+**Type:** Bug Fix / Performance
+**Severity:** Low
+**Size:** S
+
+**User story / outcome:** When a user navigates between months in the rates history chart, only the chart updates — the live rate cards at the top of the page do not re-fetch external APIs.
+
+**Scope (in):**
+- Convert the history chart's month/date navigation from URL-driven (full server re-render) to client-side (React state + a `useTransition`-wrapped Server Action call).
+- Live rate cards (`getExchangeRates`) are fetched once at page load and remain stable.
+- URL still updates (for shareable links) via `router.replace` with `{ scroll: false }`, but this does not trigger a server re-render of the rate cards.
+
+**Scope (out):**
+- SWR or React Query (no new dependencies; Server Action + `useTransition` is sufficient).
+- Polling / auto-refresh of live rates (separate concern).
+- Changing the data structure of `RateHistoryPoint`.
+
+**Technical approach:**
+- `src/components/rates/rates-history-chart.tsx` (already a `"use client"` component): extract history data fetching into a client-side `useTransition` + Server Action call on month/date change instead of updating the URL and letting the page re-render.
+- `src/app/[locale]/(dashboard)/rates/page.tsx`: pass initial `rateHistory` as a prop; live rates remain server-fetched on page load. The chart manages its own data via state.
+- `getMonthlyRateHistory` and `getDailyRateHistory` are already Server Actions — they can be called directly from client components using the `"use server"` directive.
+
+**Acceptance criteria:**
+- [ ] Switching months in the history chart does not cause the live rate cards (USDT/VES, USD/VES, EUR/VES) to flicker or re-fetch.
+- [ ] The chart updates within ~500ms of month change.
+- [ ] URL updates to reflect the selected month (for shareability).
+- [ ] TypeScript and lint pass.
+
+---
+
+### Item 11 — Onboarding AI Assistant
+
+**Type:** Feature
+**Severity:** Medium
+**Size:** XL
+
+**User story / outcome:** A new user who has never used Fin can answer 6 key questions in a step-wizard modal, and Fin generates a personalized set of budget categories and budget amounts they can accept with one click — skipping the blank-slate paralysis.
+
+**Scope (in):**
+- A modal (Dialog) that appears once on the user's first login (flagged via `user_metadata.onboarding_complete`).
+- 6-step wizard (no back-button required for v1):
+  1. **Primary currency** — what currency do you mainly transact in? (USD / USDT / VES / EUR)
+  2. **Monthly income range** — approximate monthly income in that currency (select from ranges, not exact number).
+  3. **Top spending areas** — pick up to 4 categories from the 8 defaults (Food, Transport, Housing, Entertainment, Shopping, Health, Pets, Other).
+  4. **Savings goal** — do you want to set aside a savings % each month? (None / 5% / 10% / 20% / Custom).
+  5. **Budget style** — strict (stick to exact limits) or flexible (guidelines only)?
+  6. **Review** — show AI-generated suggestions; user confirms or skips.
+- AI (Gemini 2.5 Flash via `generateObject`) takes the wizard answers + user's currency and produces:
+  - Suggested budget amounts per selected category (in their primary currency).
+  - One global budget suggestion.
+- User clicks "Apply suggestions" → Server Action creates budgets in DB.
+- User clicks "Skip" → modal closes; `onboarding_complete = true` set.
+- Existing `OnboardingCard` checklist on dashboard remains (it tracks different things — settings, profile, first expense).
+
+**Scope (out):**
+- AI generating initial expense data.
+- Multi-currency budget creation (all budgets in primary currency for v1).
+- Onboarding flow for returning users (only first login).
+- Chat interface (step-wizard sends all data at once at the end, as requested).
+
+**UX behavior:**
+- Modal appears automatically on first login (when `user.user_metadata.onboarding_complete !== true`).
+- Progress bar at top: "Step 2 of 6".
+- Each step is a simple selection (buttons/radio groups) — no text input except for "Custom %" savings.
+- Step 6 "Review": shows a card per suggested budget with category icon + name + suggested amount. User can adjust amounts inline before confirming.
+- "Apply suggestions" → creates budgets → shows success toast → closes modal → sets `onboarding_complete = true`.
+- "Skip for now" → closes modal → sets `onboarding_complete = true` (won't show again).
+
+**i18n strings (new):** *(extensive — see `docs/plan/05-i18n-strings.md` for full list)*
+Core keys: `Onboarding.modal.title`, `Onboarding.step.currency`, `Onboarding.step.income`, `Onboarding.step.categories`, `Onboarding.step.savings`, `Onboarding.step.style`, `Onboarding.step.review`, `Onboarding.apply`, `Onboarding.skip`, `Onboarding.step_of`.
+
+**Technical approach:**
+- New files:
+  - `src/components/onboarding/onboarding-modal.tsx` — `"use client"` Dialog. Multi-step state machine. Renders each step as a sub-component.
+  - `src/components/onboarding/steps/` — one file per step (currency, income, categories, savings, style, review).
+  - `src/actions/onboarding.ts` — `generateOnboardingSuggestions(answers)` (Server Action, calls Gemini, returns structured budget suggestions); `applyOnboardingSuggestions(suggestions)` (Server Action, writes budgets to DB, sets `onboarding_complete`).
+- Files to touch:
+  - `src/app/[locale]/(dashboard)/layout.tsx` — conditionally render `<OnboardingModal>` based on `user.user_metadata.onboarding_complete`.
+  - `src/app/[locale]/(dashboard)/dashboard/page.tsx` — pass `user` down (already passed to `OnboardingCard`; `OnboardingModal` gets it from layout).
+- AI schema (Zod + Gemini `generateObject`):
+  ```typescript
+  const onboardingSuggestionsSchema = z.object({
+    budgets: z.array(z.object({
+      category_name: z.string(),
+      amount: z.number().positive(),
+      currency: z.string(),
+      reasoning: z.string().max(100),
+    })),
+    global_budget: z.object({
+      amount: z.number().positive(),
+      currency: z.string(),
+    }).optional(),
+  });
+  ```
+- Security/guardrails: prompt injection mitigations (all user inputs are structured selections, not free text); no financial advice disclaimer required per user (informational, not regulated); PII: income range is a bracket, not an exact amount — never sent to AI verbatim.
+- No new DB migration needed (budgets written to existing `budgets` table; `onboarding_complete` set in Supabase Auth `user_metadata` via `supabase.auth.updateUser`).
+- RLS: budget insertion uses `createClient()` (user-scoped, existing RLS policies cover it).
+
+**Acceptance criteria:**
+- [ ] Modal appears on first login when `user.user_metadata.onboarding_complete` is not set.
+- [ ] Modal does not appear on subsequent logins.
+- [ ] Each of the 6 steps is navigable forward (no back required for v1).
+- [ ] Progress bar shows current step correctly.
+- [ ] Step 6 shows AI-generated budget suggestions with category, amount, and brief reasoning.
+- [ ] "Apply suggestions" creates budget records and closes the modal.
+- [ ] "Skip for now" closes the modal and prevents it from appearing again.
+- [ ] AI call never receives exact income amounts or PII.
+- [ ] TypeScript, lint, and build pass.
+
+**Rollback plan:** The modal is conditionally rendered; removing the render in `layout.tsx` disables the feature instantly. No DB migration to roll back.
+
+---
+
+### Item 12 — Contact/Support Section
+
+**Type:** Feature
+**Severity:** Medium
+**Size:** L
+
+**User story / outcome:** Any visitor (logged in or not) can reach Fin's support page, fill out a form, and receive a confirmation — while Fin receives the ticket by email and stores it in the database.
+
+**Scope (in):**
+- Public route: `src/app/[locale]/(public)/support/page.tsx`.
+- Form fields: Name (required), Email (required), Subject (required), Message (required).
+- Cloudflare Turnstile for spam protection.
+- Zod-validated Server Action `submitSupportTicket`.
+- DB table `support_tickets` (new migration).
+- Email notification to `SUPPORT_EMAIL` env var via Resend.
+- Confirmation email to the submitter.
+- Auth-aware prefill: if user is logged in, prefill Name and Email from `user.user_metadata`.
+- Link in public footer (`src/components/public/footer.tsx`) to `/support`.
+
+**Scope (out):**
+- Admin dashboard to view/manage tickets.
+- Ticket status tracking for the user.
+- File attachments.
+- Live chat.
+
+**UX behavior:**
+- Happy path: user fills form → passes Turnstile → submits → "Your message has been sent. We'll get back to you within 24 hours." — form clears.
+- Auth-aware: logged-in user sees name and email pre-filled (editable).
+- Error states: validation errors shown inline per field. Turnstile failure shows generic "Please complete the verification." Resend failure → "Something went wrong. Please try again or email us directly at fin@zergcore.dev."
+- Rate limit: 3 submissions per IP per hour (enforced server-side via DB count).
+
+**i18n strings (new):**
+
+| Key | EN | ES |
+|---|---|---|
+| `Support.title` | `Contact Support` | `Contactar Soporte` |
+| `Support.description` | `Have a question or issue? We're here to help.` | `¿Tienes una pregunta o problema? Estamos aquí para ayudar.` |
+| `Support.name` | `Name` | `Nombre` |
+| `Support.email` | `Email` | `Correo electrónico` |
+| `Support.subject` | `Subject` | `Asunto` |
+| `Support.message` | `Message` | `Mensaje` |
+| `Support.submit` | `Send Message` | `Enviar Mensaje` |
+| `Support.success` | `Your message has been sent. We'll get back to you within 24 hours.` | `Tu mensaje ha sido enviado. Te responderemos en menos de 24 horas.` |
+| `Support.error` | `Something went wrong. Please try again.` | `Algo salió mal. Por favor inténtalo de nuevo.` |
+| `Support.turnstile_error` | `Please complete the verification.` | `Por favor completa la verificación.` |
+| `Nav.support` | `Support` | `Soporte` |
+
+**Technical approach:**
+- New migration:
+  ```sql
+  CREATE TABLE public.support_tickets (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- nullable (anon allowed)
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    message TEXT NOT NULL,
+    ip_address TEXT,
+    status TEXT DEFAULT 'open', -- 'open', 'in_progress', 'resolved'
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  );
+  ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+  -- No user-facing SELECT policy (users don't view their own tickets in v1)
+  -- INSERT via service client only (Server Action uses createServiceClient)
+  ```
+- New files:
+  - `src/app/[locale]/(public)/support/page.tsx` — Server Component; prefills from session if available.
+  - `src/components/public/support-form.tsx` — `"use client"` form with React Hook Form + Zod + Turnstile widget.
+  - `src/actions/support.ts` — `submitSupportTicket(formData)` Server Action. Validates Zod, verifies Turnstile token server-side (POST to `https://challenges.cloudflare.com/turnstile/v0/siteverify`), inserts ticket via `createServiceClient()`, sends two Resend emails (admin notification + user confirmation).
+- New env vars: `SUPPORT_EMAIL`, `TURNSTILE_SECRET_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+- Turnstile widget: `@marsidev/react-turnstile` package (1.5KB, the standard React wrapper).
+- New dependency: `@marsidev/react-turnstile` — justification: official React wrapper for Cloudflare Turnstile; zero dependencies; 1.5KB; actively maintained.
+
+**Acceptance criteria:**
+- [ ] `/[locale]/support` renders a public-accessible form with Name, Email, Subject, Message fields and a Turnstile widget.
+- [ ] Logged-in users see their name and email pre-filled.
+- [ ] Valid submission: inserts a record in `support_tickets`; sends admin notification to `SUPPORT_EMAIL`; sends confirmation to submitter; shows success message.
+- [ ] Invalid submission (missing fields, invalid email): inline Zod validation errors shown.
+- [ ] Failed Turnstile verification: form shows error, submission blocked.
+- [ ] More than 3 submissions from same IP within 1 hour: returns rate-limit error.
+- [ ] Public footer has a "Support" link to `/support`.
+- [ ] TypeScript, lint, and build pass.
+
+**Rollback plan:** Table is additive. Route can be deleted. No impact on existing features.
+
+---
+
+### Item 13 — Git: No Claude Co-Author Trailers
+
+**Type:** Process
+**Severity:** Low
+**Size:** XS
+
+**User story / outcome:** Every future implementation session inherits the convention that commit messages must not include Claude co-author trailers, and commit format follows Conventional Commits.
+
+**Scope (in):**
+- Add a `## Git Conventions` section to `CLAUDE.md` with:
+  - Explicit prohibition on `Co-Authored-By: Claude` trailers.
+  - Conventional Commits format requirement (`feat:`, `fix:`, `style:`, `refactor:`, `chore:`, `docs:`, `test:`).
+  - Branch naming convention (`fix/item-N-short-description`, `feat/item-N-short-description`).
+- Apply going forward only — no rewriting of existing commit history.
+
+**Scope (out):**
+- Automated commit-msg lint hook (defer to future; CLAUDE.md convention is sufficient).
+- History rewrite.
+
+**Acceptance criteria:**
+- [ ] `CLAUDE.md` contains a `## Git Conventions` section.
+- [ ] Section explicitly states no `Co-Authored-By: Claude` trailers.
+- [ ] Section specifies Conventional Commits format.
+- [ ] Section specifies branch naming pattern.
+
+---
+
+## Dependency Graph (Batch 2)
+
+```mermaid
+graph TD
+    F1["#1 Email Branding<br/>M · High"]
+    F2["#2 Rate Limiting<br/>S · High"]
+    F3["#3 Duplicate Link<br/>XS · Low"]
+    F4["#4 Suspicious Activity<br/>L · High"]
+    F5["#5 OWASP<br/>L · Critical"]
+    F6["#6 Avatar<br/>XS · Medium"]
+    F7["#7 Budget Circle<br/>XS · Medium"]
+    F8["#8 Expenses Redesign<br/>M · Medium"]
+    F9["#9 Money Math<br/>M · High"]
+    F10["#10 Rates Async<br/>S · Low"]
+    F11["#11 Onboarding AI<br/>XL · Medium"]
+    F12["#12 Support<br/>L · Medium"]
+    F13["#13 Git Convention<br/>XS · Low"]
+
+    F1 -->|"Resend domain + templates<br/>needed for security emails"| F4
+    F1 -->|"Resend domain reused<br/>for support emails"| F12
+    F5 -->|"Overlaps: password policy,<br/>CSRF, rate limit headers"| F2
+    F5 -->|"Overlaps: session termination,<br/>IP handling"| F4
+    F7 -->|"Chart card overflow fix<br/>also needed in sidebar"| F8
+
+    F3 -.->|"independent"| F6
+    F6 -.->|"independent"| F9
+    F9 -.->|"independent"| F10
+    F10 -.->|"independent"| F11
+    F13 -.->|"independent"| F1
+```
+
+**Hard blocks:**
+- `#1` must land before `#4` (email templates are shared infrastructure).
+- `#1` should land before `#12` (same Resend domain and sender address).
+- `#7` (overflow fix) is a prerequisite for `#8` (expenses redesign surfaces the same chart card).
+
+**Overlaps (not strict blocks):**
+- `#5` (OWASP) overlaps conceptually with `#2` (rate limiting) and `#4` (suspicious activity). Implementing `#5` first sets the foundation; `#2` and `#4` extend it.
+
+---
+
+## Recommended Execution Order (Batch 2)
+
+| Order | Item | Rationale |
+|---|---|---|
+| 1 | **#13** Git convention | Zero-risk process change; sets the rule before implementation begins. |
+| 2 | **#3** Duplicate link | Trivial fix; done in seconds. |
+| 3 | **#6** Avatar | Trivial fix; immediate visible improvement. |
+| 4 | **#7** Budget circle | Trivial fix; prerequisite for #8. |
+| 5 | **#5** OWASP | Critical security; do this before user-facing features ship. Affects headers, password policy, RLS, env hygiene. |
+| 6 | **#1** Email branding | High-value security infrastructure; unblocks #4 and #12. Requires Resend domain setup. |
+| 7 | **#2** Rate limiting | Security; builds on #5's password-policy changes. |
+| 8 | **#4** Suspicious activity | Security feature; depends on #1 (email templates) and #5 (session handling). |
+| 9 | **#9** Money math | Tech debt with correctness implications; best fixed before it compounds. |
+| 10 | **#10** Rates async | Performance fix; independent, easy to slot in. |
+| 11 | **#8** Expenses redesign | UX; #7 must be done first (overflow fix surfaced by redesign). |
+| 12 | **#12** Support section | New public feature; depends on #1 (Resend domain). |
+| 13 | **#11** Onboarding AI | Largest feature; last — allows all infrastructure (#1, #5) to stabilize first. |
+
+---
+
+## Effort Summary (Batch 2)
+
+| Item | Effort | Risk |
+|---|---|---|
+| #1 — Email branding | M (~6 hrs + Resend domain setup) | Medium (DNS propagation, DKIM) |
+| #2 — Rate limiting | S (~2 hrs) | Low |
+| #3 — Duplicate link | XS (~15 min) | None |
+| #4 — Suspicious activity | L (~20 hrs) | High (replaces Auth UI, new sign-in flow) |
+| #5 — OWASP | L (~16 hrs) | Medium (CSP may break features if too strict) |
+| #6 — Avatar | XS (~15 min) | None |
+| #7 — Budget circle | XS (~30 min) | None |
+| #8 — Expenses redesign | M (~10 hrs) | Low |
+| #9 — Money math | M (~8 hrs) | Medium (touches core calculation layer) |
+| #10 — Rates async | S (~4 hrs) | Low |
+| #11 — Onboarding AI | XL (~30 hrs) | Medium (AI output unpredictability) |
+| #12 — Support section | L (~16 hrs) | Low |
+| #13 — Git convention | XS (~15 min) | None |
+| **Total** | **~113 hrs** | |
