@@ -40,8 +40,12 @@ const securityHeaders = [
   { key: "Cross-Origin-Resource-Policy", value: "same-site" },
 ];
 
+const isDev = process.env.NODE_ENV === "development";
+
 const nextConfig: NextConfig = {
   async headers() {
+    // Skip security headers in development — CSP blocks local Supabase (http://127.0.0.1)
+    if (isDev) return [];
     return [{ source: "/:path*", headers: securityHeaders }];
   },
   images: {
