@@ -135,17 +135,89 @@ Every page and component starts as a Server Component. Add `"use client"` only w
 
 ---
 
+## Git Conventions
+
+These rules are non-negotiable for every commit and PR — implementation sessions inherit them automatically.
+
+### Commit messages
+
+- **No Claude co-author trailers.** Never include `Co-Authored-By: Claude <noreply@anthropic.com>` or any similar Claude attribution. Author the commit normally as the developer.
+- **Conventional Commits format:** `<type>(<scope>)?: <subject>`
+  - `feat:` — user-visible feature
+  - `fix:` — user-visible bug fix
+  - `refactor:` — internal restructure, no behavior change
+  - `perf:` — performance change
+  - `style:` — formatting, whitespace, semicolons (no logic change)
+  - `chore:` — tooling, dependencies, configuration
+  - `docs:` — documentation only
+  - `test:` — tests only
+- Subject ≤ 72 characters, imperative mood, lowercase, no trailing period.
+- Body (when needed) explains *why*, not *what* — the diff explains the what.
+
+### Examples
+
+```
+feat(auth): add suspicious-activity email alerts
+fix(expenses): donut chart no longer clipped by card overflow
+refactor(money): replace float math with dinero.js
+chore(deps): add @dinero.js/core for decimal-safe currency math
+```
+
+### Branch naming
+
+`<type>/<item-number-or-issue>-<short-kebab-description>`
+
+```
+fix/03-duplicate-forgot-password
+feat/04-suspicious-activity
+refactor/09-money-math-dinero
+```
+
+### PRs
+
+- One item per PR, 2–5 commits per item.
+- PR title also follows Conventional Commits format.
+- PR description: link to the spec doc (`docs/plan/02-feature-specs.md#item-N`), summary, test plan checklist.
+
+---
+
 ## Active Feature Plan
 
-See `docs/plan/` for the full planning artifacts for the current batch of 6 features:
+See `docs/plan/` for the full planning artifacts.
 
-- `01-discovery.md` — Repo map and gap analysis
-- `02-feature-specs.md` — User stories, acceptance criteria, effort estimates
-- `03-architecture-deltas.md` — Architectural diagrams per change
-- `04-data-model.md` — Type changes and DB migration SQL
-- `05-i18n-strings.md` — All new translation strings
-- `06-component-changes.md` — Component create/modify table
-- `07-rates-and-image-generation.md` — EUR sourcing and `html-to-image` integration details
-- `08-test-strategy.md` — What to test and how
-- `09-rollout-plan.md` — Branch strategy, execution order, rollback plans
-- `10-implementation-runbook.md` — Step-by-step prompt for the implementation session
+### Batch 1 — Landing + Rates UX (6 features, completed/in-flight)
+
+- `01-discovery.md` — Repo map and gap analysis (Batch 1 sections at top of file)
+- `02-feature-specs.md` — Batch 1 user stories, acceptance criteria, effort
+- `03-architecture-deltas.md` — Batch 1 diagrams
+- `04-data-model.md` — Batch 1 type changes
+- `05-i18n-strings.md` — Batch 1 strings
+- `06-component-changes.md` — Batch 1 component table
+- `07-rates-and-image-generation.md` — EUR sourcing + `html-to-image`
+- `08-test-strategy.md` — Batch 1 tests
+- `09-rollout-plan.md` — Batch 1 rollout
+- `10-implementation-runbook.md` — Batch 1 runbook
+
+### Batch 2 — Auth + Security + Polish (13 items, in planning)
+
+- `01-discovery.md`, `02-feature-specs.md`, `03-architecture-deltas.md`, `04-data-model.md`, `05-i18n-strings.md`, `06-component-changes.md` — Batch 2 sections appended at the bottom of each file
+- `07-email-system.md` — Resend domain, email templates, cooldown UX
+- `08-security-owasp.md` — OWASP mapping, headers, RLS audit, threat model
+- `09-money-math.md` — `dinero.js` migration plan
+- `10-rates-async.md` — Decoupling history chart from page rerender
+- `11-expenses-redesign.md` — Layout, hierarchy, empty states
+- `12-onboarding-assistant.md` — AI wizard UX + technical plan
+- `13-support-system.md` — Public form, Turnstile, DB + email pipeline
+- `14-test-strategy.md` — Batch 2 test matrix
+- `15-rollout-plan.md` — Batch 2 branching, decision gates, rollback
+- `16-implementation-runbook.md` — Batch 2 runbook (created in Phase 4)
+
+---
+
+## Money-Math Rules (post-Batch 2 #9)
+
+- Never apply `+`, `-`, `*`, `/` to amounts or rates as JS `number` directly.
+- Read DB amounts/rates through `parseAmount` / `parseRate` in `src/lib/money.ts`.
+- Internal arithmetic uses Dinero objects.
+- Convert to JS `number` only at the display boundary (`toNumber`, `formatCurrency`).
+- DB columns stay `DECIMAL(12, 2)` (amounts) and `DECIMAL(12, 4)` (rates) — do not change without a migration plan.
