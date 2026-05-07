@@ -46,7 +46,7 @@ export const Header = ({ user }: { user: User | null | undefined }) => {
           <ThemeSwitcher />
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10">
+              <Button variant="ghost" size="icon" className="h-10 w-10" suppressHydrationWarning>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Menu</span>
               </Button>
