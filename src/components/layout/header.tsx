@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Sheet,
   SheetContent,
@@ -37,7 +37,9 @@ export function Header({ user }: HeaderProps) {
     await signout();
   };
 
-  const initials = user.email ? user.email.slice(0, 2).toUpperCase() : "U";
+  const displayName = (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "User";
+  const initials = displayName.slice(0, 2).toUpperCase();
+  const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-6">
@@ -73,6 +75,7 @@ export function Header({ user }: HeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-9 w-9 rounded-full">
               <Avatar className="h-9 w-9">
+                <AvatarImage src={avatarUrl} alt={displayName} />
                 <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                   {initials}
                 </AvatarFallback>
