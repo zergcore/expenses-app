@@ -9,7 +9,7 @@ export async function sendDolarvzlaAlert(): Promise<void> {
   const resend = new Resend(apiKey);
 
   await resend.emails.send({
-    from: "Fin App <onboarding@resend.dev>",
+    from: "Fin <fin@zergcore.dev>",
     to: DEVELOPER_EMAIL,
     subject: "⚠️ dolarvzla.com API key invalid — EUR using fallback",
     html: `
