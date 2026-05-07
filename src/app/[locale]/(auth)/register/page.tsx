@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 export default function RegisterPage() {
@@ -73,15 +72,6 @@ export default function RegisterPage() {
             process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
           }/auth/callback`}
         />
-        <div className="mt-4 text-center text-sm text-muted-foreground">
-          {t("Auth.alreadyHaveAccount")}{" "}
-          <Link
-            href="/login"
-            className="text-primary hover:text-primary/80 underline underline-offset-4 font-medium"
-          >
-            {t("Auth.signIn")}
-          </Link>
-        </div>
       </CardContent>
     </Card>
   );
