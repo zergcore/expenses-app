@@ -97,8 +97,8 @@ port = 54324
 # Uncomment to expose additional ports for testing user applications that send emails.
 # smtp_port = 54325
 # pop3_port = 54326
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+admin_email = "fin@zergcore.dev"
+sender_name = "Fin"
 
 [storage]
 enabled = true
@@ -223,15 +223,15 @@ otp_expiry = 3600
 
 [auth.email.template.confirmation]
 subject = "Confirm your Fin account"
-content_path = "./supabase/templates/confirmation.html"
+content_path = "./templates/confirmation.html"
 
 [auth.email.template.recovery]
 subject = "Reset your Fin password"
-content_path = "./supabase/templates/recovery.html"
+content_path = "./templates/recovery.html"
 
 [auth.email.template.email_change]
 subject = "Confirm your new email"
-content_path = "./supabase/templates/email_change.html"
+content_path = "./templates/email_change.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

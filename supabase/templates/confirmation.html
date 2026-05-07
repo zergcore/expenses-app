@@ -5,33 +5,40 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Confirm your Fin account</title>
 <style>
-  body { margin: 0; padding: 0; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; }
-  .container { max-width: 560px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-  .header { padding: 32px 32px 0; text-align: center; }
-  .logo { width: 48px; height: 48px; }
-  .body { padding: 24px 32px 32px; }
-  h1 { font-size: 22px; line-height: 1.3; margin: 16px 0 12px; color: #1a1a1a; }
-  p { font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #404040; }
-  .cta { display: inline-block; background: #1a1a1a; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; margin: 16px 0; }
-  .footer { padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; font-size: 13px; color: #888; text-align: center; }
-  .footer a { color: #888; text-decoration: underline; }
+  body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; }
+  a.cta:hover { background-color: #333333 !important; }
 </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="https://venezuela-expenses-tracker.vercel.app/og-logo.png" alt="Fin" class="logo" />
-    </div>
-    <div class="body">
-      <h1>Confirm your Fin account</h1>
-      <p>Welcome to Fin. Click the button below to confirm your email and start tracking your finances.</p>
-      <a href="{{ .ConfirmationURL }}" class="cta">Confirm Email</a>
-      <p style="font-size:13px; color:#888;">This link expires in 1 hour. If you didn't sign up, you can ignore this email.</p>
-    </div>
-    <div class="footer">
-      <p>© Fin · <a href="https://venezuela-expenses-tracker.vercel.app">venezuela-expenses-tracker.vercel.app</a></p>
-      <p style="margin-top:8px;">If you didn't expect this email, you can safely ignore it.</p>
-    </div>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 12px;">
+          <!-- Header -->
+          <tr>
+            <td align="center" style="padding: 32px 32px 0;">
+              <img src="https://venezuela-expenses-tracker.vercel.app/og-logo.png" alt="Fin" width="48" height="48" style="display: block; width: 48px; height: 48px; border: 0;" />
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding: 24px 32px 32px;">
+              <h1 style="font-size: 22px; line-height: 1.3; margin: 16px 0 12px; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Confirm your Fin account</h1>
+              <p style="font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #404040; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Welcome to Fin. Click the button below to confirm your email and start tracking your finances.</p>
+              <a href="{{ .ConfirmationURL }}" class="cta" style="display: inline-block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; margin: 16px 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px;">Confirm Email</a>
+              <p style="font-size: 13px; line-height: 1.6; margin: 0; color: #888888; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">This link expires in 1 hour. If you didn't sign up, you can ignore this email.</p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; font-size: 13px; color: #888888; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <p style="margin: 0 0 8px;">© Fin · <a href="https://venezuela-expenses-tracker.vercel.app" style="color: #888888; text-decoration: underline;">venezuela-expenses-tracker.vercel.app</a></p>
+              <p style="margin: 0;">If you didn't expect this email, you can safely ignore it.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

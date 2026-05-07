@@ -18,31 +18,42 @@ export function renderEmailFrame({ title, body }: EmailFrameOptions): string {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>${title}</title>
 <style>
-  body { margin: 0; padding: 0; background: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; }
-  .container { max-width: 560px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-  .header { padding: 32px 32px 0; text-align: center; }
-  .logo { width: 48px; height: 48px; }
-  .body { padding: 24px 32px 32px; }
-  h1 { font-size: 22px; line-height: 1.3; margin: 16px 0 12px; color: #1a1a1a; }
-  p { font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #404040; }
-  .cta { display: inline-block; background: #1a1a1a; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; margin: 16px 0; }
-  .footer { padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; font-size: 13px; color: #888; text-align: center; }
-  .footer a { color: #888; text-decoration: underline; }
+  body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; }
+  a.cta:hover { background-color: #333333 !important; }
 </style>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <img src="${LOGO_URL}" alt="Fin" class="logo" />
-    </div>
-    <div class="body">
-      ${body}
-    </div>
-    <div class="footer">
-      <p>© Fin · <a href="${BASE_URL}">${SITE_HOST}</a></p>
-      <p style="margin-top:8px;">If you didn't expect this email, you can safely ignore it.</p>
-    </div>
-  </div>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f5f5f5;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table width="560" cellpadding="0" cellspacing="0" border="0" style="max-width: 560px; width: 100%; background-color: #ffffff; border-radius: 12px;">
+          <tr>
+            <td align="center" style="padding: 32px 32px 0;">
+              <img src="${LOGO_URL}" alt="Fin" width="48" height="48" style="display: block; width: 48px; height: 48px; border: 0;" />
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 24px 32px 32px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              ${body}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 16px 32px 24px; border-top: 1px solid #f0f0f0; font-size: 13px; color: #888888; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+              <p style="margin: 0 0 8px;">© Fin · <a href="${BASE_URL}" style="color: #888888; text-decoration: underline;">${SITE_HOST}</a></p>
+              <p style="margin: 0;">If you didn't expect this email, you can safely ignore it.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
+
+export const emailStyles = {
+  h1: 'font-size: 22px; line-height: 1.3; margin: 16px 0 12px; color: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;',
+  p: 'font-size: 15px; line-height: 1.6; margin: 0 0 16px; color: #404040; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;',
+  pSmall: 'font-size: 13px; line-height: 1.6; margin: 0 0 16px; color: #888888; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;',
+  cta: 'display: inline-block; background-color: #1a1a1a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; margin: 16px 0; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif; font-size: 15px;',
+} as const;
