@@ -4,16 +4,50 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createNotification } from "./notifications";
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 
 // --- Helper Functions ---
+
+/**
+ * Reusable Auth Checker
+ */
+async function requireAuth(supabase: SupabaseClient<Database>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  return user;
+}
+
+/**
+ * Calculates accurate start and end ISO strings for a given month/year.
+ * Fixes the "dropped transactions on the last day of the month" bug.
+ */
+function getMonthBounds(month?: number, year?: number) {
+  const targetYear = year ?? new Date().getFullYear();
+  const targetMonth = month ?? new Date().getMonth();
+
+  const start = new Date(targetYear, targetMonth, 1, 0, 0, 0, 0).toISOString();
+  // Ensure we capture until the very last millisecond of the last day
+  const end = new Date(
+    targetYear,
+    targetMonth + 1,
+    0,
+    23,
+    59,
+    59,
+    999,
+  ).toISOString();
+
+  return { start, end };
+}
 
 async function checkBudgetLimits(userId: string, categoryId: string | null) {
   if (!categoryId) return;
 
-  const supabase = await createClient();
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+  const supabase = await createClient<Database>();
+  const { start, end } = getMonthBounds();
 
   const [budgetRes, expensesRes] = await Promise.all([
     supabase
@@ -72,12 +106,7 @@ export type Expense = {
     is_default: boolean;
   } | null;
   category_id: string | null;
-  equivalents: {
-    usd: number;
-    ves: number;
-    usdt: number;
-    eur: number;
-  } | null;
+  equivalents: { usd: number; ves: number; usdt: number; eur: number } | null;
   rates_at_creation: {
     usd_ves: number;
     usdt_ves: number;
@@ -88,39 +117,20 @@ export type Expense = {
 };
 
 // Internal type for Supabase response in getExpenses
-type RawExpenseResponse = {
-  id: string;
-  amount: number;
-  currency: string;
-  description: string | null;
-  date: string;
-  category_id: string | null;
-  category: {
-    name: string;
-    icon: string | null;
-    color: string | null;
-    is_default: boolean;
-  } | null;
-  equivalents: {
-    usd: number;
-    ves: number;
-    usdt: number;
-    eur: number;
-  } | null;
-  rates_at_creation: {
-    usd_ves: number;
-    usdt_ves: number;
-    eur_ves: number;
-    usd_usdt: number;
-    eur_usdt: number;
-  } | null;
+type RawExpenseResponse = Omit<Expense, "equivalents" | "rates_at_creation"> & {
+  equivalents: unknown;
+  rates_at_creation: unknown;
 };
 
 const expenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   currency: z.enum(["USD", "VES", "USDT", "EUR"]),
   date: z.string(),
-  category_id: z.string().optional().nullable(),
+  // Automatically transforms "none" or empty strings into null DB insertions
+  category_id: z
+    .string()
+    .optional()
+    .transform((val) => (val === "none" || val === "" ? null : val)),
   description: z.string().optional(),
 });
 
@@ -138,18 +148,17 @@ export async function getExpenses(
   month?: number,
   year?: number,
 ): Promise<{ data: Expense[]; count: number }> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = await createClient<Database>();
 
-  if (!user) return { data: [], count: 0 };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch {
+    return { data: [], count: 0 };
+  }
 
   const offset = (page - 1) * limit;
-  const targetYear = year ?? new Date().getFullYear();
-  const targetMonth = month ?? new Date().getMonth();
-  const start = new Date(targetYear, targetMonth, 1).toISOString();
-  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+  const { start, end } = getMonthBounds(month, year);
 
   const { data, count, error } = await supabase
     .from("expenses")
@@ -171,27 +180,26 @@ export async function getExpenses(
     throw new Error("Failed to fetch expenses");
   }
 
-  // Use the internal type to cast safely without 'any'
-  const rawData = (data as unknown as RawExpenseResponse[]) || [];
-
-  return { data: rawData, count: count || 0 };
+  return {
+    data: data as unknown as RawExpenseResponse[] as Expense[],
+    count: count || 0,
+  };
 }
 
 export async function getExpenseTotal(
   month?: number,
   year?: number,
 ): Promise<number> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = await createClient<Database>();
 
-  if (!user) return 0;
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch {
+    return 0;
+  }
 
-  const targetYear = year ?? new Date().getFullYear();
-  const targetMonth = month ?? new Date().getMonth();
-  const start = new Date(targetYear, targetMonth, 1).toISOString();
-  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+  const { start, end } = getMonthBounds(month, year);
 
   const { data, error } = await supabase
     .from("expenses")
@@ -200,9 +208,9 @@ export async function getExpenseTotal(
     .gte("date", start)
     .lte("date", end);
 
-  if (error) return 0;
+  if (error || !data) return 0;
 
-  return (data || []).reduce((acc, curr) => acc + curr.amount, 0);
+  return data.reduce((acc, curr) => acc + curr.amount, 0);
 }
 
 export type CategorySpending = {
@@ -216,37 +224,24 @@ export type CategorySpending = {
   percentage: number;
 };
 
-type Category = {
-  name: string;
-  icon: string | null;
-  color: string | null;
-  is_default: boolean;
-};
-
 export async function getSpendingByCategory(
   month?: number,
   year?: number,
 ): Promise<CategorySpending[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = await createClient<Database>();
 
-  if (!user) return [];
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch {
+    return [];
+  }
 
-  const targetYear = year ?? new Date().getFullYear();
-  const targetMonth = month ?? new Date().getMonth();
-  const start = new Date(targetYear, targetMonth, 1).toISOString();
-  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+  const { start, end } = getMonthBounds(month, year);
 
   const { data, error } = await supabase
     .from("expenses")
-    .select(
-      `
-      amount,
-      category:categories (name, icon, color, is_default)
-    `,
-    )
+    .select(`amount, category:categories (name, icon, color, is_default)`)
     .eq("user_id", user.id)
     .gte("date", start)
     .lte("date", end);
@@ -255,25 +250,24 @@ export async function getSpendingByCategory(
 
   const grouped = new Map<
     string,
-    { category: Category | null; amount: number }
+    { category: CategorySpending["category"]; amount: number }
   >();
   let total = 0;
 
-  type RawExpense = {
+  // Use explicit casting to map standard Supabase joined records safely
+  const expenses = data as unknown as {
     amount: number;
-    category: Category | null;
-  };
+    category: CategorySpending["category"];
+  }[];
 
-  (data as unknown as RawExpense[]).forEach((item) => {
+  expenses.forEach((item) => {
     total += item.amount;
     const key = item.category?.name || "Uncategorized";
 
     if (!grouped.has(key)) {
       grouped.set(key, { category: item.category, amount: 0 });
     }
-
-    const entry = grouped.get(key)!;
-    entry.amount += item.amount;
+    grouped.get(key)!.amount += item.amount;
   });
 
   if (total === 0) return [];
@@ -291,16 +285,20 @@ export async function createExpense(
   prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
+
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
+  }
 
   const rawData = {
     amount: formData.get("amount"),
     currency: formData.get("currency"),
     date: formData.get("date"),
-    category_id:
-      formData.get("category_id") === "none"
-        ? null
-        : formData.get("category_id"),
+    category_id: formData.get("category_id"),
     description: formData.get("description"),
   };
 
@@ -312,26 +310,21 @@ export async function createExpense(
     };
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
-
-  // Fetch current rates and calculate equivalents
+  // Fetch current rates and calculate equivalents dynamically
   const { getCurrentRatesSnapshot } = await import("@/actions/rates");
   const { calculateEquivalents } = await import("@/lib/currency-calculator");
 
   const rates = await getCurrentRatesSnapshot();
   const amount = validated.data.amount;
   const currency = validated.data.currency as "USD" | "VES" | "USDT" | "EUR";
-
   const equivalents = calculateEquivalents(amount, currency, rates);
 
   const { error } = await supabase.from("expenses").insert({
     user_id: user.id,
     ...validated.data,
-    equivalents,
-    rates_at_creation: rates,
+    // JSON parse trick forces TS compiler to accept it as strict JSON object for Supabase
+    equivalents: JSON.parse(JSON.stringify(equivalents)),
+    rates_at_creation: JSON.parse(JSON.stringify(rates)),
   });
 
   if (error) return { error: error.message };
@@ -350,44 +343,41 @@ export async function updateExpense(
   prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const supabase = await createClient();
-  const id = formData.get("id") as string;
+  const supabase = await createClient<Database>();
 
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Unauthorized" };
+  }
+
+  const id = formData.get("id") as string;
   const rawData = {
     amount: formData.get("amount"),
     currency: formData.get("currency"),
     date: formData.get("date"),
-    category_id:
-      formData.get("category_id") === "none"
-        ? null
-        : formData.get("category_id"),
+    category_id: formData.get("category_id"),
     description: formData.get("description"),
   };
 
   const validated = expenseSchema.safeParse(rawData);
   if (!validated.success) return { error: "Invalid input" };
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
-
-  // Recalculate equivalents with current rates
   const { getCurrentRatesSnapshot } = await import("@/actions/rates");
   const { calculateEquivalents } = await import("@/lib/currency-calculator");
 
   const rates = await getCurrentRatesSnapshot();
   const amount = validated.data.amount;
   const currency = validated.data.currency as "USD" | "VES" | "USDT" | "EUR";
-
   const equivalents = calculateEquivalents(amount, currency, rates);
 
   const { error } = await supabase
     .from("expenses")
     .update({
       ...validated.data,
-      equivalents,
-      rates_at_creation: rates,
+      equivalents: JSON.parse(JSON.stringify(equivalents)),
+      rates_at_creation: JSON.parse(JSON.stringify(rates)),
     })
     .eq("id", id)
     .eq("user_id", user.id);
@@ -405,17 +395,15 @@ export async function updateExpense(
 }
 
 export async function deleteExpense(id: string) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Unauthorized");
+  const supabase = await createClient<Database>();
+  const user = await requireAuth(supabase); // Throws directly on fail, standard for non-form actions
 
   const { error } = await supabase
     .from("expenses")
     .delete()
     .eq("id", id)
     .eq("user_id", user.id);
+
   if (error) throw error;
 
   revalidatePath("/expenses");
@@ -441,26 +429,22 @@ type RawExportBudget = {
 };
 
 export async function getAllExpensesForExport(month?: number, year?: number) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabase = await createClient<Database>();
 
-  if (!user) return [];
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch {
+    return [];
+  }
 
-  const targetYear = year ?? new Date().getFullYear();
-  const targetMonth = month ?? new Date().getMonth();
-  const start = new Date(targetYear, targetMonth, 1).toISOString();
-  const end = new Date(targetYear, targetMonth + 1, 0).toISOString();
+  const { start, end } = getMonthBounds(month, year);
 
   const [expensesRes, budgetsRes] = await Promise.all([
     supabase
       .from("expenses")
       .select(
-        `
-        amount, currency, description, date, category_id,
-        category:categories (name)
-      `,
+        `amount, currency, description, date, category_id, category:categories (name)`,
       )
       .eq("user_id", user.id)
       .gte("date", start)
@@ -469,16 +453,10 @@ export async function getAllExpensesForExport(month?: number, year?: number) {
 
     supabase
       .from("budgets")
-      .select(
-        `
-        amount, currency, category_id,
-        category:categories (name)
-      `,
-      )
+      .select(`amount, currency, category_id, category:categories (name)`)
       .eq("user_id", user.id),
   ]);
 
-  // Cast strictly here using our defined types
   const expenses = (expensesRes.data as unknown as RawExportExpense[]) || [];
   const budgets = (budgetsRes.data as unknown as RawExportBudget[]) || [];
 
