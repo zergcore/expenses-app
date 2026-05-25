@@ -3,7 +3,13 @@
 import { LocaleSwitcher } from "../layout/locale-switcher";
 import { ThemeSwitcher } from "../layout/theme-switcher";
 import { Button } from "../ui/button";
-import { Sheet, SheetContent, SheetFooter, SheetTitle, SheetTrigger } from "../ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetFooter,
+  SheetTitle,
+  SheetTrigger,
+} from "../ui/sheet";
 import { Link } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { User } from "@supabase/supabase-js";
@@ -46,13 +52,18 @@ export const Header = ({ user }: { user: User | null | undefined }) => {
           <ThemeSwitcher />
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-10 w-10" suppressHydrationWarning>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10"
+                suppressHydrationWarning
+              >
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Menu</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px] flex flex-col">
-              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+              <SheetTitle className="sr-only">Menu</SheetTitle>
               {/* Centered content area */}
               <div className="flex-1 flex flex-col items-center justify-center gap-6 px-4">
                 {/* Isologo branding */}

@@ -17,7 +17,7 @@ export default async function LandingPage() {
   ]);
 
   // Extract rates from the API response
-  const usdtRate = rates.find((r) => r.pair === "USDT / USD")?.value || 0;
+  const usdtRate = rates.find((r) => r.pair === "USDT / VED")?.value || 0;
   const usdRate = rates.find((r) => r.pair === "USD / VED")?.value || 0;
   const eurRate = rates.find((r) => r.pair === "EUR / VED")?.value || 0;
 
@@ -28,17 +28,17 @@ export default async function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
+    <div className="min-h-screen bg-linear-to-b from-background to-muted">
       {/* Header */}
       <Header user={user} />
 
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection user={user} />
 
       {/* Calculator & Chart Section */}
       <section className="container mx-auto px-4 py-2 sm:py-6">
         <div className="grid md:grid-cols-2 gap-4 sm:gap-8 max-w-4xl mx-auto">
-          <CurrencyCalculator rates={calculatorRates} />
+          <CurrencyCalculator rates={calculatorRates} allRates={rates} />
           <RateComparisonChart usdRate={usdRate} usdtRate={usdtRate} />
         </div>
       </section>

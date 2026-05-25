@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { detectSuspiciousActivity } from "@/lib/suspicious-activity";
+import { generateSecureToken } from "@/lib/secure-token";
+import { sendSecurityAlertEmail } from "@/lib/security-email";
 
 type ActionState = {
   error?: string;
@@ -19,7 +22,7 @@ export async function signout() {
 
 export async function changePassword(
   _prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const password = formData.get("password") as string;
 
@@ -41,7 +44,7 @@ export async function changePassword(
 
 export async function resetPassword(
   _prevState: ActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionState> {
   const email = formData.get("email") as string;
 
@@ -67,4 +70,123 @@ export async function resetPassword(
   }
 
   return { success: true };
+}
+
+export async function signIn(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  if (!email || !password) {
+    return { error: "Email and password are required", success: false };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: signInError,
+  } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  const headersList = await headers();
+  const ip = headersList.get("x-forwarded-for")?.split(",")[0] || null;
+  const country = headersList.get("x-vercel-ip-country") || null;
+  const userAgent = headersList.get("user-agent") || null;
+
+  const supabaseAdmin = await createServiceClient();
+
+  if (signInError) {
+    let userId: string | null = null;
+    try {
+      const {
+        data: { users },
+      } = await supabaseAdmin.auth.admin.listUsers();
+      const existingUser = users.find(
+        (u) => u.email?.toLowerCase() === email.toLowerCase(),
+      );
+      if (existingUser) {
+        userId = existingUser.id;
+      }
+    } catch (e) {
+      console.error(String(e));
+    }
+
+    if (userId) {
+      // Log failed attempt event
+      await supabaseAdmin.from("login_events").insert({
+        user_id: userId,
+        event_type: "failed_attempt",
+        ip_address: ip,
+        country_code: country,
+        user_agent: userAgent,
+        is_suspicious: false,
+      });
+
+      // Check heuristics on failed attempts
+      const { isSuspicious, reason } = await detectSuspiciousActivity(
+        userId,
+        ip,
+        country,
+        userAgent,
+      );
+      if (isSuspicious) {
+        const secureToken = generateSecureToken(userId);
+        await sendSecurityAlertEmail(
+          email,
+          reason,
+          ip,
+          country,
+          userAgent,
+          secureToken,
+        );
+      }
+    }
+
+    return { error: "Invalid email or password", success: false };
+  }
+
+  // On Success:
+  const userId = user?.id;
+
+  if (!userId) {
+    return { error: "Invalid email or password", success: false };
+  }
+
+  // Run heuristics
+  const { isSuspicious, reason } = await detectSuspiciousActivity(
+    userId,
+    ip,
+    country,
+    userAgent,
+  );
+
+  // Log sign_in event
+  await supabaseAdmin.from("login_events").insert({
+    user_id: userId,
+    event_type: "sign_in",
+    ip_address: ip,
+    country_code: country,
+    user_agent: userAgent,
+    is_suspicious: isSuspicious,
+    reason: reason,
+  });
+
+  if (isSuspicious) {
+    const secureToken = generateSecureToken(userId);
+    await sendSecurityAlertEmail(
+      email,
+      reason,
+      ip,
+      country,
+      userAgent,
+      secureToken,
+    );
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
 }

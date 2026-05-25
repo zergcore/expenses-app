@@ -3,25 +3,9 @@
 import { Link } from "@/i18n/navigation";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  Receipt,
-  Wallet,
-  Tags,
-  TrendingUp,
-  Settings,
-} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Isotipo } from "../logo/Isotipo";
-
-const navigation = [
-  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { key: "expenses", href: "/expenses", icon: Receipt },
-  { key: "budgets", href: "/budgets", icon: Wallet },
-  { key: "categories", href: "/categories", icon: Tags },
-  { key: "rates", href: "/rates", icon: TrendingUp },
-  { key: "settings", href: "/settings", icon: Settings },
-];
+import { navigation } from "@/constants/sidebar";
 
 interface SidebarProps {
   className?: string;
@@ -40,7 +24,7 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-6">
-        <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Isotipo width={100} height={100} />
         </Link>
       </div>

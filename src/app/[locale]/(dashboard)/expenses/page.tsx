@@ -9,6 +9,7 @@ import { ExpenseChartProvider } from "@/components/expenses/expense-chart/expens
 import { ExportExpensesButton } from "@/components/expenses/export-expenses-button";
 import { ExpensesTitle } from "@/components/expenses/expenses-title";
 import { ExpenseActions } from "@/components/expenses/expense-actions";
+import { ExpensesSidebar } from "@/components/expenses/expenses-sidebar";
 
 interface ExpensesPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -88,8 +89,17 @@ export default async function ExpensesPage({
         {/* KPI Header - 4 uniform cards */}
         {totalBudget > 0 && <KPIHeader />}
 
-        {/* Full-width Expense Table */}
-        <ExpensesClient categories={categories} />
+        {/* Two-column layout: Table on the left, Sidebar on the right */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex-1 min-w-0">
+            <ExpensesClient categories={categories} />
+          </div>
+          {totalBudget > 0 && (
+            <div className="w-full lg:w-80 xl:w-96 shrink-0">
+              <ExpensesSidebar />
+            </div>
+          )}
+        </div>
       </div>
     </ExpenseChartProvider>
   );

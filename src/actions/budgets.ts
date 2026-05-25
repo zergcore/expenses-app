@@ -195,8 +195,29 @@ export async function createBudget(
 
   if (!user) return { error: "Unauthorized" };
 
-  // Optimization: No need to check for existing budgets if your UX allows multiples,
-  // but usually you want to prevent duplicates. (Skipped for brevity as per your original code)
+  const startDate = startOfMonth(new Date()).toISOString();
+
+  // Check for existing budget for the same month and category (or global)
+  let query = supabase
+    .from("budgets")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("start_date", startDate);
+
+  if (validated.data.category_id) {
+    query = query.eq("category_id", validated.data.category_id);
+  } else {
+    query = query.is("category_id", null);
+  }
+
+  const { data: existing } = await query;
+  if (existing && existing.length > 0) {
+    return {
+      error: validated.data.category_id
+        ? "A budget for this category already exists for this month."
+        : "A global budget already exists for this month.",
+    };
+  }
 
   const { error } = await supabase.from("budgets").insert({
     user_id: user.id,
@@ -204,7 +225,7 @@ export async function createBudget(
     category_id: validated.data.category_id,
     period: validated.data.period,
     currency: validated.data.currency,
-    start_date: startOfMonth(new Date()).toISOString(),
+    start_date: startDate,
   });
 
   if (error) return { error: error.message };

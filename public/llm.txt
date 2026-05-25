@@ -1,0 +1,16 @@
+# Fin
+
+Fin is a personal finance management application that helps users track expenses, manage budgets, and monitor real-time currency exchange rates (USD, USDT, EUR) against the Venezuelan Bolivar (VES).
+
+## Technologies
+- **Framework**: Next.js 16 (App Router, Turbopack)
+- **State & UI**: React 19, TailwindCSS 4, Radix UI, Lucide Icons, Recharts
+- **Database & Auth**: Supabase (Auth, PostgreSQL, Row Level Security, Edge Functions)
+- **Math**: Dinero.js for precise currency conversion and operations
+- **Localization**: next-intl for English (en) and Spanish (es) support
+
+## Key Features
+- **Dashboard**: Monthly budget summary, Donuts category charts, recent transactions, live BCV official/Binance exchange rates.
+- **Calculator**: Multi-directional conversion tool supporting USD, USDT, EUR, and VES. Supports downloading high-fidelity rate images.
+- **Rates History**: Visual tracking of exchange rate historical trends.
+- **Security & Compliance**: OWASP-hardened with secure cookie options, CSP, rate-limiting, and global session termination.

@@ -25,7 +25,7 @@ export const ExpensesSidebar = () => {
   return (
     <div className="space-y-4 lg:sticky lg:top-4">
       {/* Budget Overview Card */}
-      <Card className="overflow-hidden">
+      <Card>
         <ChartCard />
         <LegendExpenseChart />
         <DailySpendingInsight />

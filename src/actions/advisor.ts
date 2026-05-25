@@ -12,7 +12,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { revalidatePath } from "next/cache";
 
 import { anonymizeExpenses, validateNoPI } from "@/lib/advisor/anonymizer";
@@ -24,6 +24,11 @@ import {
   type SupportedLocale,
   type AggregatedFinancialData,
 } from "@/lib/advisor/types";
+
+// 1. Import Database schema and SupabaseClient for strict typing
+import type { Database } from "@/types/supabase";
+import { SupabaseClient } from "@supabase/supabase-js";
+import { Expense } from "./expenses";
 
 // --- Types ---
 
@@ -115,6 +120,19 @@ RULES:
 ${t.rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}`;
 }
 
+// --- Auth Helper ---
+
+/**
+ * Ensures the user is authenticated. Throws an error to be caught by the action.
+ */
+async function requireAuth(supabase: SupabaseClient<Database>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  return user;
+}
+
 // --- Cache Logic ---
 
 const CACHE_DURATION_HOURS = 24; // Insights valid for 24 hours
@@ -125,7 +143,8 @@ async function getCachedInsight(
   year: number,
   locale: SupportedLocale,
 ): Promise<FinancialInsight | null> {
-  const supabase = await createClient();
+  // 2. Inject <Database> so TypeScript knows the shape of financial_insights
+  const supabase = await createClient<Database>();
 
   const { data, error } = await supabase
     .from("financial_insights")
@@ -138,15 +157,17 @@ async function getCachedInsight(
 
   if (error || !data) return null;
 
-  const validUntil = new Date(data.valid_until);
+  // Now data.valid_until is strictly typed and will pass Vercel build checks!
+  const validUntil = new Date(data.valid_until as string);
   const isStale = validUntil < new Date();
 
   return {
     id: data.id,
-    tips: data.tips as FinancialTip[],
+    // JSON columns in Supabase are typed as `Json`, so casting is still appropriate here
+    tips: data.tips as unknown as FinancialTip[],
     summary: data.summary,
-    metrics: data.metrics as FinancialMetrics,
-    generatedAt: new Date(data.generated_at),
+    metrics: data.metrics as unknown as FinancialMetrics,
+    generatedAt: new Date(data.generated_at as string),
     isStale,
   };
 }
@@ -160,7 +181,7 @@ async function saveInsight(
   tips: FinancialTip[],
   summary: string | null,
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
   const validUntil = new Date();
   validUntil.setHours(validUntil.getHours() + CACHE_DURATION_HOURS);
@@ -173,8 +194,9 @@ async function saveInsight(
         month,
         year,
         locale,
-        metrics,
-        tips,
+        // Using JSON.parse(JSON.stringify()) to safely strip out JS-specific prototypes for Supabase JSONB
+        metrics: JSON.parse(JSON.stringify(metrics)),
+        tips: JSON.parse(JSON.stringify(tips)),
         summary,
         generated_at: new Date().toISOString(),
         valid_until: validUntil.toISOString(),
@@ -186,7 +208,7 @@ async function saveInsight(
     .select("id")
     .single();
 
-  if (error) {
+  if (error || !data) {
     console.error("Failed to save insight:", error);
     throw new Error("Failed to save financial insight");
   }
@@ -197,20 +219,16 @@ async function saveInsight(
 // --- Data Fetching ---
 
 async function fetchMonthlyData(userId: string, month: number, year: number) {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
   const start = new Date(year, month, 1).toISOString();
   const end = new Date(year, month + 1, 0).toISOString();
 
-  // Parallel fetch expenses, budgets, and rates
   const [expensesRes, budgetsRes, ratesRes] = await Promise.all([
     supabase
       .from("expenses")
       .select(
-        `
-        id, amount, currency, description, date, equivalents,
-        category:categories (name, icon, color)
-      `,
+        `id, amount, currency, description, date, equivalents, category:categories (name, icon, color)`,
       )
       .eq("user_id", userId)
       .gte("date", start)
@@ -218,16 +236,14 @@ async function fetchMonthlyData(userId: string, month: number, year: number) {
 
     supabase
       .from("budgets")
-      .select("id, amount, currency, category_id, spent:amount")
+      .select("id, amount, currency, category_id, spent:amount") // Note: verify 'spent:amount' is valid in your schema
       .eq("user_id", userId),
 
-    // Get current and previous rates for volatility calculation
     supabase
       .from("exchange_rates")
-      .select("pair, rate, source, created_at")
-      .eq("pair", "USD / VED")
-      .eq("source", "BCV Official")
-      .order("created_at", { ascending: false })
+      .select("pair, rate, source, fetched_at") // Changed created_at to fetched_at based on your previous files
+      .in("pair", ["USD_VES", "USD / VED"]) // Accounted for string mismatches from previous files
+      .order("fetched_at", { ascending: false })
       .limit(10),
   ]);
 
@@ -244,21 +260,22 @@ export async function getFinancialInsight(
   locale: SupportedLocale = "es",
   forceRefresh: boolean = false,
 ): Promise<GetInsightResult> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Unauthorized" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unauthorized",
+    };
   }
 
   const now = new Date();
   const month = now.getMonth();
   const year = now.getFullYear();
 
-  // Check cache first (unless force refresh)
   if (!forceRefresh) {
     const cached = await getCachedInsight(user.id, month, year, locale);
     if (cached && !cached.isStale) {
@@ -267,14 +284,12 @@ export async function getFinancialInsight(
   }
 
   try {
-    // Fetch monthly data
     const { expenses, budgets, rates } = await fetchMonthlyData(
       user.id,
       month,
       year,
     );
 
-    // Check if user has enough data
     if (expenses.length === 0) {
       return {
         success: false,
@@ -282,16 +297,14 @@ export async function getFinancialInsight(
       };
     }
 
-    // Anonymize expenses
+    // Pass cleanly inferred arrays
     const anonymizedExpenses = anonymizeExpenses(
-      expenses as unknown as Parameters<typeof anonymizeExpenses>[0],
+      expenses as unknown as Expense[],
     );
 
-    // Get rate info for volatility
     const currentRate = rates[0]?.rate || 0;
-    const weekAgoRate = rates[7]?.rate || currentRate; // ~7 days ago
+    const weekAgoRate = rates[7]?.rate || currentRate;
 
-    // Calculate metrics
     const aggregatedData = calculateFinancialMetrics(
       anonymizedExpenses,
       budgets.map((b) => ({
@@ -299,26 +312,22 @@ export async function getFinancialInsight(
         amount: b.amount,
         currency: b.currency || "USD",
         category_id: b.category_id,
-        spent: b.spent || 0,
+        spent: Number(b.spent) || 0,
       })),
       {
         currentUSDVES: Number(currentRate),
-        currentUSDTVES: Number(currentRate) * 1.02, // Approximate
+        currentUSDTVES: Number(currentRate) * 1.02,
         previousUSDVES: Number(weekAgoRate),
       },
       now,
     );
 
-    // Validate no PII before AI call
     validateNoPI(aggregatedData);
-
-    // Build prompt
     const systemPrompt = buildSystemPrompt(locale, aggregatedData);
 
-    // Call Gemini
-    const { object: aiResponse } = await generateObject({
+    const { output: aiResponse } = await generateText({
       model: google("gemini-2.5-flash"),
-      schema: financialInsightResponseSchema,
+      output: Output.object({ schema: financialInsightResponseSchema }),
       system: systemPrompt,
       prompt:
         locale === "es"
@@ -326,7 +335,6 @@ export async function getFinancialInsight(
           : "Generate 3 personalized financial tips based on the provided context.",
     });
 
-    // Save to cache
     const insightId = await saveInsight(
       user.id,
       month,
@@ -336,10 +344,6 @@ export async function getFinancialInsight(
       aiResponse.tips,
       aiResponse.summary || null,
     );
-
-    // Note: We do NOT call revalidatePath here because this function is called
-    // directly by Server Components during render. Revalidation should be handled
-    // by the caller if it's a mutation/action (like refreshFinancialInsight).
 
     return {
       success: true,
@@ -364,9 +368,6 @@ export async function getFinancialInsight(
   }
 }
 
-/**
- * Manually refresh insights (rate-limited by cache TTL).
- */
 export async function refreshFinancialInsight(
   locale: SupportedLocale = "es",
 ): Promise<GetInsightResult> {

@@ -1,6 +1,9 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { cache } from "react";
+import { z } from "zod";
+import type { Database } from "../types/supabase";
 
 export interface RateData {
   pair: string;
@@ -14,38 +17,53 @@ export interface RateData {
 }
 
 // -----------------------------------------------------------------------------
-// API Response Types
+// Strict Zod Schemas for API Responses
 // -----------------------------------------------------------------------------
 
-interface BinanceAd {
-  adv: {
-    price: string;
-  };
-}
+const BinanceResponseSchema = z.object({
+  data: z
+    .array(z.object({ adv: z.object({ price: z.string() }) }))
+    .nullable()
+    .optional(),
+});
 
-interface BinanceResponse {
-  data: BinanceAd[];
-}
+const DolarVzlaSchema = z.object({
+  current: z
+    .object({ usd: z.number().optional(), eur: z.number().optional() })
+    .optional(),
+  changePercentage: z
+    .object({ usd: z.number().optional(), eur: z.number().optional() })
+    .optional(),
+});
 
-interface DolarApiResponse {
-  promedio?: number;
-  price?: number;
-}
+const DolarApiSchema = z.object({
+  promedio: z.number().optional(),
+  price: z.number().optional(),
+});
 
-interface CoinGeckoResponse {
-  bitcoin: {
-    usd: number;
-    usd_24h_change: number;
-    usdt: number;
-  };
-  tether: {
-    usd: number;
-    usd_24h_change: number;
-  };
+const FrankfurterSchema = z.object({
+  rates: z.object({ USD: z.number() }),
+});
+
+const CoinGeckoSchema = z.object({
+  bitcoin: z.object({
+    usd: z.number(),
+    usd_24h_change: z.number(),
+    usdt: z.number(),
+  }),
+  tether: z.object({ usd: z.number(), usd_24h_change: z.number() }).optional(),
+});
+
+export interface BCVRatesResult {
+  usd?: number;
+  eur?: number;
+  usdChange?: number;
+  eurChange?: number;
+  dolarvzlaFailed?: boolean;
 }
 
 // -----------------------------------------------------------------------------
-// Fetchers
+// Fetchers (Runtime Safe)
 // -----------------------------------------------------------------------------
 
 async function fetchBinanceRate(): Promise<number | null> {
@@ -77,26 +95,20 @@ async function fetchBinanceRate(): Promise<number | null> {
 
       if (!response.ok) return null;
 
-      const data = (await response.json()) as BinanceResponse;
-      const ads = data.data;
+      const parsed = BinanceResponseSchema.safeParse(await response.json());
+      if (!parsed.success || !parsed.data.data || parsed.data.data.length === 0)
+        return null;
 
-      if (!ads || ads.length === 0) return null;
-
-      // Calculate average of top 10 results
+      const ads = parsed.data.data;
       const sum = ads.reduce((acc, ad) => acc + parseFloat(ad.adv.price), 0);
       return sum / ads.length;
     };
 
-    // Fetch both BUY and SELL rates
     const [sellRate, buyRate] = await Promise.all([
       fetchP2PRate("SELL"),
       fetchP2PRate("BUY"),
     ]);
-
-    // Return average of both rates, or whichever is available
-    if (sellRate && buyRate) {
-      return (sellRate + buyRate) / 2;
-    }
+    if (sellRate && buyRate) return (sellRate + buyRate) / 2;
     return sellRate || buyRate || null;
   } catch (e) {
     console.error("Binance Fetch Error:", e);
@@ -104,45 +116,18 @@ async function fetchBinanceRate(): Promise<number | null> {
   }
 }
 
-// DolarVzla API response type
-interface DolarVzlaResponse {
-  current: {
-    usd: number;
-    eur: number;
-    date: string;
-  };
-  previous: {
-    usd: number;
-    eur: number;
-    date: string;
-  };
-  changePercentage: {
-    usd: number;
-    eur: number;
-  };
-}
-
-export interface BCVRatesResult {
-  usd?: number;
-  eur?: number;
-  usdChange?: number;
-  eurChange?: number;
-  dolarvzlaFailed?: boolean; // true when primary API was unavailable
-}
-
-interface FrankfurterResponse {
-  rates: { USD: number };
-}
-
 async function fetchEurUsdRate(): Promise<number | null> {
   try {
     const res = await fetch(
       "https://api.frankfurter.dev/v1/latest?from=EUR&to=USD",
-      { next: { revalidate: 3600 } },
+      {
+        next: { revalidate: 3600 },
+      },
     );
     if (!res.ok) return null;
-    const data = (await res.json()) as FrankfurterResponse;
-    return data.rates?.USD ?? null;
+
+    const parsed = FrankfurterSchema.safeParse(await res.json());
+    return parsed.success ? parsed.data.rates.USD : null;
   } catch {
     return null;
   }
@@ -151,7 +136,6 @@ async function fetchEurUsdRate(): Promise<number | null> {
 async function fetchBCVRates(): Promise<BCVRatesResult | null> {
   const apiKey = process.env.DOLAR_VZLA_KEY;
 
-  // Try dolarvzla.com API first (has both USD and EUR)
   if (apiKey) {
     try {
       const response = await fetch(
@@ -163,20 +147,21 @@ async function fetchBCVRates(): Promise<BCVRatesResult | null> {
       );
 
       if (response.ok) {
-        const data = (await response.json()) as DolarVzlaResponse;
-        return {
-          usd: data.current?.usd || 0,
-          eur: data.current?.eur || 0,
-          usdChange: data.changePercentage?.usd,
-          eurChange: data.changePercentage?.eur,
-        };
+        const parsed = DolarVzlaSchema.safeParse(await response.json());
+        if (parsed.success) {
+          return {
+            usd: parsed.data.current?.usd || 0,
+            eur: parsed.data.current?.eur || 0,
+            usdChange: parsed.data.changePercentage?.usd,
+            eurChange: parsed.data.changePercentage?.eur,
+          };
+        }
       }
     } catch (e) {
       console.error("DolarVzla Fetch Error:", e);
     }
   }
 
-  // Fallback: dolarapi.com for USD + Frankfurter (ECB) cross-rate for EUR
   try {
     const [usdRes, eurUsdRate] = await Promise.all([
       fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
@@ -187,14 +172,14 @@ async function fetchBCVRates(): Promise<BCVRatesResult | null> {
 
     let usdPrice = 0;
     if (usdRes.ok) {
-      const data = (await usdRes.json()) as DolarApiResponse;
-      usdPrice = data.promedio ?? data.price ?? 0;
+      const parsed = DolarApiSchema.safeParse(await usdRes.json());
+      if (parsed.success) {
+        usdPrice = parsed.data.promedio ?? parsed.data.price ?? 0;
+      }
     }
 
-    // EUR/VES = (EUR/USD from ECB) × (USD/VES from BCV)
     const eurPrice =
       eurUsdRate && usdPrice > 0 ? eurUsdRate * usdPrice : undefined;
-
     return { usd: usdPrice, eur: eurPrice, dolarvzlaFailed: true };
   } catch (e) {
     console.error("BCV Fetch Error:", e);
@@ -202,7 +187,9 @@ async function fetchBCVRates(): Promise<BCVRatesResult | null> {
   }
 }
 
-async function fetchCryptoRates(): Promise<CoinGeckoResponse | null> {
+async function fetchCryptoRates(): Promise<z.infer<
+  typeof CoinGeckoSchema
+> | null> {
   try {
     const response = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,tether&vs_currencies=usd,usdt&include_24hr_change=true",
@@ -210,7 +197,8 @@ async function fetchCryptoRates(): Promise<CoinGeckoResponse | null> {
     );
 
     if (!response.ok) return null;
-    return (await response.json()) as CoinGeckoResponse;
+    const parsed = CoinGeckoSchema.safeParse(await response.json());
+    return parsed.success ? parsed.data : null;
   } catch (e) {
     console.error("Crypto Fetch Error:", e);
     return null;
@@ -224,10 +212,8 @@ async function fetchCryptoRates(): Promise<CoinGeckoResponse | null> {
 async function updateRateInDB(pair: string, source: string, rate: number) {
   if (rate <= 0) return;
 
-  // Use service role client to bypass RLS for system-level writes
-  // This is necessary because public users (anon) cannot insert rates
   try {
-    const serviceClient = createServiceClient();
+    const serviceClient = createServiceClient<Database>();
     const { error } = await serviceClient.from("exchange_rates").insert({
       pair,
       source,
@@ -235,15 +221,9 @@ async function updateRateInDB(pair: string, source: string, rate: number) {
       fetched_at: new Date().toISOString(),
     });
 
-    if (error) {
-      console.error("DB Write Error:", error);
-    }
+    if (error) console.error("DB Write Error:", error);
   } catch (e) {
-    // Service role key might not be available in all environments
-    console.warn(
-      "Could not write rate to DB (service role may not be configured):",
-      e,
-    );
+    console.warn("Could not write rate to DB:", e);
   }
 }
 
@@ -251,11 +231,10 @@ async function updateRateInDB(pair: string, source: string, rate: number) {
 // Main Action
 // -----------------------------------------------------------------------------
 
-export async function getExchangeRates(): Promise<RateData[]> {
-  const supabase = await createClient();
+export const getExchangeRates = cache(async (): Promise<RateData[]> => {
+  const supabase = await createClient<Database>();
   const now = new Date();
 
-  // 1. Get Cached Rates from DB (Recent)
   const { data: cachedData } = await supabase
     .from("exchange_rates")
     .select("*")
@@ -268,7 +247,6 @@ export async function getExchangeRates(): Promise<RateData[]> {
   const findLatest = (pair: string, source: string) =>
     cachedData?.find((r) => r.pair === pair && r.source === source);
 
-  // Helper to fetch rate from ~24h ago
   const get24hAgoRate = async (pair: string, source: string) => {
     const { data } = await supabase
       .from("exchange_rates")
@@ -278,11 +256,11 @@ export async function getExchangeRates(): Promise<RateData[]> {
       .lt(
         "fetched_at",
         new Date(now.getTime() - 20 * 60 * 60 * 1000).toISOString(),
-      ) // Older than 20h
+      )
       .order("fetched_at", { ascending: false })
       .limit(1)
       .single();
-    return data?.rate ? parseFloat(data.rate) : null;
+    return data?.rate ?? null;
   };
 
   const calculateTrend = (changeVal: number) => {
@@ -290,61 +268,41 @@ export async function getExchangeRates(): Promise<RateData[]> {
     return changeVal > 0 ? "up" : "down";
   };
 
-  const formatChange = (changeVal: number) => {
-    return `${changeVal > 0 ? "+" : ""}${changeVal.toFixed(2)}%`;
-  };
+  const formatChange = (changeVal: number) =>
+    `${changeVal > 0 ? "+" : ""}${changeVal.toFixed(2)}%`;
 
-  // 2. Define Requirements
   const pairs = [
     { pair: "USDT_VES", source: "Binance", staleMin: 5 },
-    { pair: "USD_VES", source: "BCV", staleMin: 60 }, // 1h (was 24h)
-    { pair: "EUR_VES", source: "BCV", staleMin: 60 }, // 1h (was 24h)
+    { pair: "USD_VES", source: "BCV", staleMin: 60 },
+    { pair: "EUR_VES", source: "BCV", staleMin: 60 },
     { pair: "BTC_USD", source: "CoinGecko", staleMin: 5 },
     { pair: "BTC_USDT", source: "CoinGecko", staleMin: 5 },
   ];
 
-  const results: RateData[] = [];
-
-  // 3. Check what needs fetching
-  const needsFetch = {
-    binance: false,
-    bcv: false,
-    crypto: false,
-  };
+  const needsFetch = { binance: false, bcv: false, crypto: false };
 
   pairs.forEach((p) => {
     const cached = findLatest(p.pair, p.source);
-    if (!cached) {
+    if (
+      !cached ||
+      !cached.fetched_at ||
+      (now.getTime() - new Date(cached.fetched_at).getTime()) / 60000 >
+        p.staleMin
+    ) {
       if (p.source === "Binance") needsFetch.binance = true;
       if (p.source === "BCV") needsFetch.bcv = true;
       if (p.source === "CoinGecko") needsFetch.crypto = true;
-    } else {
-      const ageMin =
-        (now.getTime() - new Date(cached.fetched_at).getTime()) / 60000;
-      if (ageMin > p.staleMin) {
-        if (p.source === "Binance") needsFetch.binance = true;
-        if (p.source === "BCV") needsFetch.bcv = true;
-        if (p.source === "CoinGecko") needsFetch.crypto = true;
-      }
     }
   });
 
-  // 4. Perform Fetches
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const promises: Promise<any>[] = [];
+  const [binanceData, bcvData, cryptoData] = await Promise.all([
+    needsFetch.binance ? fetchBinanceRate() : Promise.resolve(null),
+    needsFetch.bcv ? fetchBCVRates() : Promise.resolve(null),
+    needsFetch.crypto ? fetchCryptoRates() : Promise.resolve(null),
+  ]);
 
-  if (needsFetch.binance) promises.push(fetchBinanceRate());
-  else promises.push(Promise.resolve(null));
+  const results: RateData[] = [];
 
-  if (needsFetch.bcv) promises.push(fetchBCVRates());
-  else promises.push(Promise.resolve(null));
-
-  if (needsFetch.crypto) promises.push(fetchCryptoRates());
-  else promises.push(Promise.resolve(null));
-
-  const [binanceData, bcvData, cryptoData] = await Promise.all(promises);
-
-  // 5. Update DB and Build Results
   const getVal = async (
     targetPair: string,
     targetSource: string,
@@ -355,18 +313,23 @@ export async function getExchangeRates(): Promise<RateData[]> {
       return newData;
     }
     const cached = findLatest(targetPair, targetSource);
-    return cached ? parseFloat(cached.rate) : 0;
+    return cached ? cached.rate : 0;
   };
 
-  // USDT / VES (Binance)
-  const usdtVes = await getVal("USDT_VES", "Binance", binanceData);
+  const [usdtVes, usdVes, eurVes, btcUsd, btcUsdt] = await Promise.all([
+    getVal("USDT_VES", "Binance", binanceData ?? undefined),
+    getVal("USD_VES", "BCV", bcvData?.usd),
+    getVal("EUR_VES", "BCV", bcvData?.eur),
+    getVal("BTC_USD", "CoinGecko", cryptoData?.bitcoin?.usd),
+    getVal("BTC_USDT", "CoinGecko", cryptoData?.bitcoin?.usdt),
+  ]);
+
   if (usdtVes > 0) {
     const prevUsdt = await get24hAgoRate("USDT_VES", "Binance");
     const changeVal =
       prevUsdt && prevUsdt > 0 ? ((usdtVes - prevUsdt) / prevUsdt) * 100 : 0;
-
     results.push({
-      pair: "USDT / USD",
+      pair: "USDT / VED",
       rate: `Bs. ${usdtVes.toFixed(2)}`,
       trend: calculateTrend(changeVal),
       change: formatChange(changeVal),
@@ -376,17 +339,13 @@ export async function getExchangeRates(): Promise<RateData[]> {
     });
   }
 
-  // USD / VES (BCV)
-  const usdVes = await getVal("USD_VES", "BCV", bcvData?.usd);
   if (usdVes > 0) {
-    // Prefer API provided change, fallback to calculation if needed
     let changeVal = bcvData?.usdChange;
     if (changeVal === undefined) {
       const prevUsd = await get24hAgoRate("USD_VES", "BCV");
       changeVal =
         prevUsd && prevUsd > 0 ? ((usdVes - prevUsd) / prevUsd) * 100 : 0;
     }
-
     results.push({
       pair: "USD / VED",
       rate: `Bs. ${usdVes.toFixed(2)}`,
@@ -398,8 +357,6 @@ export async function getExchangeRates(): Promise<RateData[]> {
     });
   }
 
-  // EUR / VES (BCV)
-  const eurVes = await getVal("EUR_VES", "BCV", bcvData?.eur);
   if (eurVes > 0) {
     let changeVal = bcvData?.eurChange;
     if (changeVal === undefined) {
@@ -407,7 +364,6 @@ export async function getExchangeRates(): Promise<RateData[]> {
       changeVal =
         prevEur && prevEur > 0 ? ((eurVes - prevEur) / prevEur) * 100 : 0;
     }
-
     results.push({
       pair: "EUR / VED",
       rate: `Bs. ${eurVes.toFixed(2)}`,
@@ -419,11 +375,8 @@ export async function getExchangeRates(): Promise<RateData[]> {
     });
   }
 
-  // BTC / USD
-  const btcUsdData = cryptoData?.bitcoin;
-  const btcUsd = await getVal("BTC_USD", "CoinGecko", btcUsdData?.usd);
   if (btcUsd > 0) {
-    const btcUsdChange = btcUsdData?.usd_24h_change || 0;
+    const btcUsdChange = cryptoData?.bitcoin?.usd_24h_change || 0;
     results.push({
       pair: "BTC / USD",
       rate: `$${btcUsd.toLocaleString()}`,
@@ -435,11 +388,7 @@ export async function getExchangeRates(): Promise<RateData[]> {
     });
   }
 
-  // BTC / USDT
-  const btcUsdt = await getVal("BTC_USDT", "CoinGecko", btcUsdData?.usdt);
   if (btcUsdt > 0) {
-    // CoinGecko API typically returns USD change, assuming USDT tracks USD closely...
-    // Or we could calculate it using DB manually if desired, but 0.0% is probably safer default here if no explicit API data
     results.push({
       pair: "BTC / USDT",
       rate: `${btcUsdt.toLocaleString()} USDT`,
@@ -452,7 +401,33 @@ export async function getExchangeRates(): Promise<RateData[]> {
   }
 
   return results;
+});
+
+export interface RateData {
+  pair: string;
+  rate: string;
+  trend: "up" | "down" | "flat";
+  change: string;
+  description: string;
+  value: number;
+  source: string;
+  lastUpdated?: string;
 }
+
+// -----------------------------------------------------------------------------
+// API Response Types
+// -----------------------------------------------------------------------------
+export interface BCVRatesResult {
+  usd?: number;
+  eur?: number;
+  usdChange?: number;
+  eurChange?: number;
+  dolarvzlaFailed?: boolean; // true when primary API was unavailable
+}
+
+// -----------------------------------------------------------------------------
+// Database Cache Operations
+// -----------------------------------------------------------------------------
 
 /**
  * Runs getExchangeRates and returns whether dolarvzla.com was unavailable.
@@ -469,10 +444,13 @@ export async function getExchangeRatesWithStatus(): Promise<{
 
   if (apiKey) {
     try {
-      const res = await fetch("https://api.dolarvzla.com/public/exchange-rate", {
-        headers: { "x-dolarvzla-key": apiKey },
-        next: { revalidate: 0 }, // bypass cache for a fresh check
-      });
+      const res = await fetch(
+        "https://api.dolarvzla.com/public/exchange-rate",
+        {
+          headers: { "x-dolarvzla-key": apiKey },
+          next: { revalidate: 0 }, // bypass cache for a fresh check
+        },
+      );
       if (!res.ok) dolarvzlaFailed = true;
     } catch {
       dolarvzlaFailed = true;
@@ -504,7 +482,7 @@ export async function getMonthlyRateHistory(
   year?: number,
   month?: number, // 1-12
 ): Promise<RateHistoryPoint[]> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
   const now = new Date();
 
   const targetYear = year || now.getFullYear();
@@ -515,7 +493,10 @@ export async function getMonthlyRateHistory(
   const endOfMonth = new Date(targetYear, targetMonth + 1, 0, 23, 59, 59);
 
   // Initialize map with all days in the month to ensure continuous chart
-  const dayMap = new Map<string, { usd: number | null; usdt: number | null; eur: number | null }>();
+  const dayMap = new Map<
+    string,
+    { usd: number | null; usdt: number | null; eur: number | null }
+  >();
   const daysInMonth = endOfMonth.getDate();
 
   for (let i = 1; i <= daysInMonth; i++) {
@@ -541,16 +522,17 @@ export async function getMonthlyRateHistory(
 
   // Merge DB data into dayMap
   data?.forEach((row) => {
+    if (!row.fetched_at) return;
     const fetchedDate = new Date(row.fetched_at);
     // Use same formatting logic as initialization
     const dateKey = `${fetchedDate.getFullYear()}-${String(fetchedDate.getMonth() + 1).padStart(2, "0")}-${String(fetchedDate.getDate()).padStart(2, "0")}`;
-    const rate = parseFloat(row.rate);
+    const rate = row.rate;
 
     if (dayMap.has(dateKey)) {
       const dayData = dayMap.get(dateKey)!;
       if (row.pair === "USD_VES") {
         dayData.usd = rate;
-      } else if (row.pair === "USDT_VES") {
+      } else if (row.pair === "USDT_VES" || row.pair === "USDT / VED") {
         dayData.usdt = rate;
       } else if (row.pair === "EUR_VES") {
         dayData.eur = rate;
@@ -580,8 +562,8 @@ export async function getMonthlyRateHistory(
 // -----------------------------------------------------------------------------
 
 export interface DailyRatePoint {
-  time: string;        // "HH:mm" formatted from fetched_at in local time
-  fetched_at: string;  // ISO 8601 — retained for sorting
+  time: string; // "HH:mm" formatted from fetched_at in local time
+  fetched_at: string; // ISO 8601 — retained for sorting
   usdt: number | null;
   usd: number | null;
   eur: number | null;
@@ -594,7 +576,7 @@ export interface DailyRatePoint {
 export async function getDailyRateHistory(
   date: string, // YYYY-MM-DD
 ): Promise<DailyRatePoint[]> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
   const startOfDay = new Date(date + "T00:00:00.000Z");
   const endOfDay = new Date(date + "T23:59:59.999Z");
@@ -617,15 +599,22 @@ export async function getDailyRateHistory(
 
   data?.forEach((row) => {
     const ts = row.fetched_at;
+    if (!ts) return;
     if (!pointMap.has(ts)) {
       const d = new Date(ts);
       const hh = String(d.getHours()).padStart(2, "0");
       const mm = String(d.getMinutes()).padStart(2, "0");
-      pointMap.set(ts, { time: `${hh}:${mm}`, fetched_at: ts, usdt: null, usd: null, eur: null });
+      pointMap.set(ts, {
+        time: `${hh}:${mm}`,
+        fetched_at: ts,
+        usdt: null,
+        usd: null,
+        eur: null,
+      });
     }
     const point = pointMap.get(ts)!;
-    const rate = parseFloat(row.rate);
-    if (row.pair === "USDT_VES") point.usdt = rate;
+    const rate = typeof row.rate === 'string' ? parseFloat(row.rate) : row.rate;
+    if (row.pair === "USDT_VES" || row.pair === "USDT / VED") point.usdt = rate;
     else if (row.pair === "USD_VES") point.usd = rate;
     else if (row.pair === "EUR_VES") point.eur = rate;
   });
@@ -647,7 +636,7 @@ export async function getDailyRateHistory(
 export async function getLastNDaysRateHistory(
   days: number,
 ): Promise<RateHistoryPoint[]> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
   const now = new Date();
   const endDate = now;
   const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
@@ -666,18 +655,23 @@ export async function getLastNDaysRateHistory(
   }
 
   // Build a dayMap keyed by YYYY-MM-DD, taking the last rate per day per pair
-  const dayMap = new Map<string, { usd: number | null; usdt: number | null; eur: number | null }>();
+  const dayMap = new Map<
+    string,
+    { usd: number | null; usdt: number | null; eur: number | null }
+  >();
 
   data?.forEach((row) => {
+    if (!row.fetched_at) return;
     const d = new Date(row.fetched_at);
     const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     if (!dayMap.has(dateKey)) {
       dayMap.set(dateKey, { usd: null, usdt: null, eur: null });
     }
     const dayData = dayMap.get(dateKey)!;
-    const rate = parseFloat(row.rate);
+    const rate = row.rate;
     if (row.pair === "USD_VES") dayData.usd = rate;
-    else if (row.pair === "USDT_VES") dayData.usdt = rate;
+    else if (row.pair === "USDT_VES" || row.pair === "USDT / VED")
+      dayData.usdt = rate;
     else if (row.pair === "EUR_VES") dayData.eur = rate;
   });
 
@@ -686,7 +680,12 @@ export async function getLastNDaysRateHistory(
     .sort()
     .forEach((date) => {
       const dayData = dayMap.get(date)!;
-      result.push({ date, usd: dayData.usd, usdt: dayData.usdt, eur: dayData.eur });
+      result.push({
+        date,
+        usd: dayData.usd,
+        usdt: dayData.usdt,
+        eur: dayData.eur,
+      });
     });
 
   return result;
@@ -709,7 +708,7 @@ export interface RatesSnapshot {
  * Returns a snapshot of all rate pairs needed for equivalents calculation.
  */
 export async function getCurrentRatesSnapshot(): Promise<RatesSnapshot> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
   // Fetch the most recent rate for each pair
   const { data } = await supabase
@@ -731,9 +730,10 @@ export async function getCurrentRatesSnapshot(): Promise<RatesSnapshot> {
   data?.forEach((row) => {
     if (!seen.has(row.pair)) {
       seen.add(row.pair);
-      const rate = parseFloat(row.rate);
+      const rate = row.rate;
       if (row.pair === "USD_VES") rates.usd_ves = rate;
-      if (row.pair === "USDT_VES") rates.usdt_ves = rate;
+      if (row.pair === "USDT_VES" || row.pair === "USDT / VED")
+        rates.usdt_ves = rate;
       if (row.pair === "EUR_VES") rates.eur_ves = rate;
     }
   });

@@ -42,30 +42,37 @@ export async function updateSession(
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Define public paths that don't require authentication
   const pathname = request.nextUrl.pathname;
-  const isPublicPath =
-    // Root landing page (/, /en, /es)
-    pathname === "/" ||
-    pathname === "/en" ||
-    pathname === "/es" ||
-    // Auth pages
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/en/login") ||
-    pathname.startsWith("/es/login") ||
-    pathname.startsWith("/register") ||
-    pathname.startsWith("/en/register") ||
-    pathname.startsWith("/es/register") ||
-    pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/en/forgot-password") ||
-    pathname.startsWith("/es/forgot-password") ||
-    pathname.startsWith("/update-password") ||
-    pathname.startsWith("/en/update-password") ||
-    pathname.startsWith("/es/update-password") ||
-    pathname.startsWith("/auth");
+  
+  // Define protected paths (dashboard routes)
+  const protectedPaths = [
+    "dashboard",
+    "budgets",
+    "calculator",
+    "categories",
+    "expenses",
+    "notifications",
+    "profile",
+    "rates",
+    "recurring",
+    "settings",
+  ];
 
-  if (!user && !isPublicPath) {
-    // no user, potentially respond by redirecting the user to the login page
+  // Helper to determine if path is protected
+  const isProtectedPath = (() => {
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length === 0) return false;
+    
+    // Check if the first segment is a locale; if so, inspect the second segment
+    const firstSegment = segments[0];
+    const isLocale = firstSegment === "en" || firstSegment === "es";
+    const targetSegment = isLocale ? segments[1] : firstSegment;
+    
+    return targetSegment ? protectedPaths.includes(targetSegment) : false;
+  })();
+
+  if (!user && isProtectedPath) {
+    // no user and trying to access a protected dashboard route, redirect to login
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

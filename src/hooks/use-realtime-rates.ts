@@ -2,20 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { RateData } from "@/actions/rates";
-import { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
+import type { RateData } from "@/actions/rates";
+import type { Database } from "@/types/supabase"; // Auto-generated types
+import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 
-interface ExchangeRateRow {
-  id: string;
-  pair: string;
-  source: string;
-  rate: number;
-  fetched_at: string;
-}
+// Infer the exact Row type directly from your database schema
+type ExchangeRateRow = Database["public"]["Tables"]["exchange_rates"]["Row"];
+
+// 1. Mapping Dictionary: Much cleaner than massive if/else blocks
+const PAIR_MAPPING: Record<string, string> = {
+  USDT_VES_Binance: "USDT / VED",
+  USD_VES_BCV: "USD / VED",
+  EUR_VES_BCV: "EUR / VED",
+  BTC_USD_CoinGecko: "BTC / USD",
+  BTC_USDT_CoinGecko: "BTC / USDT",
+};
 
 export function useRealtimeRates(initialRates: RateData[]) {
   const [rates, setRates] = useState<RateData[]>(initialRates);
 
+  // 2. State Sync: If Next.js pushes fresh data from the server, update the UI
+  // without killing the WebSocket connection below.
+  useEffect(() => {
+    setRates(initialRates);
+  }, [initialRates]);
+
+  // 3. Realtime Connection: Empty dependency array ensures we only connect ONCE.
   useEffect(() => {
     const supabase = createClient();
 
@@ -34,49 +46,18 @@ export function useRealtimeRates(initialRates: RateData[]) {
 
           setRates((currentRates) => {
             return currentRates.map((rate) => {
-              // Match logic: check if the incoming rate matches the pair/source of the UI item
-              // We need to map DB keys (e.g. USDT_VES) to UI pairs (e.g. USDT / USD)
-              // This relies on the fact that existing rates have valid derived data.
+              // Generate the composite key (e.g., "USDT_VES_Binance")
+              const mappingKey = `${newRate.pair}_${newRate.source}`;
+              const expectedUiPair = PAIR_MAPPING[mappingKey];
 
-              // Mapping logic based on rates.ts
-              let isMatch = false;
-
-              if (
-                newRate.pair === "USDT_VES" &&
-                newRate.source === "Binance" &&
-                rate.pair === "USDT / USD"
-              ) {
-                isMatch = true;
-              } else if (
-                newRate.pair === "USD_VES" &&
-                newRate.source === "BCV" &&
-                rate.pair === "USD / VED"
-              ) {
-                isMatch = true;
-              } else if (
-                newRate.pair === "EUR_VES" &&
-                newRate.source === "BCV" &&
-                rate.pair === "EUR / VED"
-              ) {
-                isMatch = true;
-              } else if (
-                newRate.pair === "BTC_USD" &&
-                newRate.source === "CoinGecko" &&
-                rate.pair === "BTC / USD"
-              ) {
-                isMatch = true;
-              } else if (
-                newRate.pair === "BTC_USDT" &&
-                newRate.source === "CoinGecko" &&
-                rate.pair === "BTC / USDT"
-              ) {
-                isMatch = true;
-              }
-
-              if (isMatch) {
-                // Calculate new trend based on old value vs new value
+              // If this realtime insert belongs to this specific UI card
+              if (expectedUiPair === rate.pair) {
                 const oldValue = rate.value;
-                const newValue = newRate.rate;
+
+                // Note: Depending on your Supabase generation, numeric DB columns
+                // might be typed as strings or numbers. We wrap in Number() to be safe.
+                const newValue = Number(newRate.rate);
+
                 const trend =
                   newValue > oldValue
                     ? "up"
@@ -84,34 +65,24 @@ export function useRealtimeRates(initialRates: RateData[]) {
                       ? "down"
                       : "flat";
 
-                // For change percentage, we ideally keep the original 24h old reference.
-                // Since we don't have it explicitly, we can back-calculate it from the initial rate state
-                // or just keep the old % change if we assume 24h baseline hasn't shifted much in this session.
-                // However, a live price update usually implies we should re-calc the % change vs the OPEN.
-                // Let's rely on the fact that `rate.change` is a string like "+1.20%".
-                // If we want to be precise, we need the 24h-ago value.
-                // Let's approximate: `24h_old = oldValue / (1 + oldChange%)`.
-                // Parse old change:
-                const oldChangeStr = rate.change
-                  .replace("%", "")
-                  .replace("+", "");
-                const oldChangePct = parseFloat(oldChangeStr) / 100;
-                const baseline24h = oldValue / (1 + oldChangePct);
+                // Safely extract the old change percentage using regex
+                const oldChangePct =
+                  parseFloat(rate.change.replace(/[%+]/g, "")) / 100 || 0;
 
-                let newChangePct = 0;
-                if (baseline24h > 0) {
-                  newChangePct = ((newValue - baseline24h) / baseline24h) * 100;
-                }
+                // Reconstruct the 24h baseline (Fallback to newValue to prevent div by 0)
+                const baseline24h = oldValue / (1 + oldChangePct) || newValue;
+
+                const newChangePct =
+                  baseline24h > 0
+                    ? ((newValue - baseline24h) / baseline24h) * 100
+                    : 0;
 
                 // Format display string
-                // Determine format based on pair (BTC uses $ or USDT suffix, Fiat uses Bs. prefix)
                 let displayRate = "";
                 if (rate.pair.includes("BTC")) {
-                  if (rate.pair.includes("USDT")) {
-                    displayRate = `${newValue.toLocaleString()} USDT`;
-                  } else {
-                    displayRate = `$${newValue.toLocaleString()}`;
-                  }
+                  displayRate = rate.pair.includes("USDT")
+                    ? `${newValue.toLocaleString()} USDT`
+                    : `$${newValue.toLocaleString()}`;
                 } else {
                   displayRate = `Bs. ${newValue.toFixed(2)}`;
                 }
@@ -135,7 +106,7 @@ export function useRealtimeRates(initialRates: RateData[]) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [initialRates]);
+  }, []); // <-- Empty array: Mount once, listen forever
 
   return rates;
 }

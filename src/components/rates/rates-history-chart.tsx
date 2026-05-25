@@ -12,7 +12,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -27,32 +26,39 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-import type { RateHistoryPoint, DailyRatePoint } from "@/actions/rates";
+import {
+  getMonthlyRateHistory,
+  getDailyRateHistory,
+  type RateHistoryPoint,
+  type DailyRatePoint,
+} from "@/actions/rates";
 
 interface RatesHistoryChartProps {
-  data: RateHistoryPoint[] | DailyRatePoint[];
-  granularity: "month" | "day";
-  selectedDate: string; // YYYY-MM-DD (used in daily mode)
+  initialData: RateHistoryPoint[] | DailyRatePoint[];
+  initialGranularity: "month" | "day";
+  initialDate: string; // YYYY-MM-DD (used in daily mode)
 }
 
 export function RatesHistoryChart({
-  data,
-  granularity,
-  selectedDate,
+  initialData,
+  initialGranularity,
+  initialDate,
 }: RatesHistoryChartProps) {
   const t = useTranslations("Rates");
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [calendarOpen, setCalendarOpen] = useState(false);
-
+  
   const now = new Date();
   const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const selectedMonth = searchParams.get("month") || defaultMonth;
+  
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [granularity, setGranularity] = useState(initialGranularity);
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth);
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [data, setData] = useState(initialData);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Generate last 12 months for the month selector
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -62,36 +68,51 @@ export function RatesHistoryChart({
     return { value, label };
   });
 
-  const setParam = (key: string, value: string | null) => {
-    const params = new URLSearchParams(searchParams);
-    if (value === null) {
-      params.delete(key);
-    } else {
-      params.set(key, value);
+  const isFirstRender = useRef(true);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
-    router.replace(`${pathname}?${params.toString()}`);
-  };
+
+    let active = true;
+    const fetchChartData = async () => {
+      setIsLoading(true);
+      try {
+        if (granularity === "day") {
+          const res = await getDailyRateHistory(selectedDate);
+          if (active) setData(res);
+        } else {
+          const [y, m] = selectedMonth.split("-").map(Number);
+          const res = await getMonthlyRateHistory(y, m);
+          if (active) setData(res);
+        }
+      } catch (err) {
+        console.error("Failed to load chart data:", err);
+      } finally {
+        if (active) setIsLoading(false);
+      }
+    };
+    fetchChartData();
+
+    return () => {
+      active = false;
+    };
+  }, [granularity, selectedMonth, selectedDate]);
 
   const handleGranularityChange = (g: "month" | "day") => {
-    const params = new URLSearchParams(searchParams);
-    if (g === "month") {
-      params.delete("granularity");
-      params.delete("date");
-    } else {
-      params.set("granularity", "day");
-      if (!params.has("date")) params.set("date", selectedDate);
-    }
-    router.replace(`${pathname}?${params.toString()}`);
+    setGranularity(g);
   };
 
   const handleMonthChange = (value: string) => {
-    setParam("month", value === defaultMonth ? null : value);
+    setSelectedMonth(value);
   };
 
   const handleDateSelect = (d: Date | undefined) => {
     if (!d) return;
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    setParam("date", dateStr);
+    setSelectedDate(dateStr);
     setCalendarOpen(false);
   };
 
@@ -105,16 +126,18 @@ export function RatesHistoryChart({
   // Build chart data based on granularity
   const isDaily = granularity === "day";
 
+  const safeData = data || [];
+
   const chartData = isDaily
-    ? (data as DailyRatePoint[]).map((p) => ({ ...p, displayKey: p.time }))
-    : (data as RateHistoryPoint[]).map((p) => ({
+    ? (safeData as DailyRatePoint[]).map((p) => ({ ...p, displayKey: p.time }))
+    : (safeData as RateHistoryPoint[]).map((p) => ({
         ...p,
         displayKey: formatDate(p.date),
       }));
 
   const allRates = isDaily
-    ? (data as DailyRatePoint[]).flatMap((d) => [d.usdt, d.usd, d.eur])
-    : (data as RateHistoryPoint[]).flatMap((d) => [d.usd, d.usdt, d.eur]);
+    ? (safeData as DailyRatePoint[]).flatMap((d) => [d.usdt, d.usd, d.eur])
+    : (safeData as RateHistoryPoint[]).flatMap((d) => [d.usd, d.usdt, d.eur]);
 
   const validRates = allRates.filter((v): v is number => v !== null);
   const minRate = validRates.length > 0 ? Math.min(...validRates) : 0;
@@ -208,7 +231,12 @@ export function RatesHistoryChart({
         </div>
       </CardHeader>
 
-      <CardContent className="pb-4">
+      <CardContent className="pb-4 relative">
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/50 backdrop-blur-[1px]">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
         {isEmpty ? (
           <p className="h-[300px] flex items-center justify-center text-sm text-muted-foreground">
             {t("no_data_for_date")}

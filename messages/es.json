@@ -87,7 +87,11 @@
     "signIn": "Inicia sesión",
     "resetSent": "Si este correo está registrado, recibirás un enlace en breve.",
     "resendIn": "Reenviar en {seconds}s",
-    "resetSubmitting": "Enviando…"
+    "resetSubmit": "Enviar enlace",
+    "resetSubmitting": "Enviando...",
+    "secured": "Tu cuenta ha sido asegurada. Todas las sesiones activas han sido cerradas. Por favor inicia sesión de nuevo.",
+    "invalidToken": "El enlace de seguridad no es válido o ha expirado.",
+    "terminationFailed": "No se pudo asegurar la cuenta. Por favor contacta al soporte."
   },
   "Profile": {
     "title": "Perfil",
@@ -197,6 +201,7 @@
     "icon_placeholder": "Icono",
     "name_placeholder": "Ej. Comida",
     "none": "Ninguno (Categoría raíz)",
+    "uncategorized": "Sin categoría",
     "create": "Crear Categoría"
   },
   "Expenses": {
@@ -292,20 +297,29 @@
   },
   "Nav": {
     "dashboard": "Inicio",
+    "recurring": "Recurrentes",
     "expenses": "Gastos",
     "budgets": "Presupuestos",
     "categories": "Categorías",
     "rates": "Tasas",
     "settings": "Configuración",
+    "calculator": "Calculadora",
     "theme": "Tema",
     "notifications": "Notificaciones",
     "language": "Idioma",
     "logout": "Cerrar sesión",
     "light": "Claro",
     "dark": "Oscuro",
-    "system": "Sistema"
+    "system": "Sistema",
+    "support": "Soporte"
   },
   "Landing": {
+    "exportRates": "Exportar Tasas",
+    "session_banner": {
+      "welcome": "¡Bienvenido de nuevo!",
+      "message": "Has iniciado sesión como {email}.",
+      "button": "Acceder al Dashboard"
+    },
     "title": "Planificación Financiera Inteligente",
     "subtitle": "Domina tus Finanzas",
     "description": "Coordina tus finanzas rastreando tanto tus gastos como las tasas de cambio en tiempo real. Toma decisiones informadas entendiendo cómo las fluctuaciones cambiarias afectan tu presupuesto.",
@@ -398,7 +412,55 @@
     "complete": "🎉 ¡Configuración Completa!",
     "empty_expense_cta": "Registrar mi primer gasto",
     "empty_budget_cta": "Define un límite mensual para ahorrar más este mes",
-    "create_budget": "Crear Presupuesto"
+    "create_budget": "Crear Presupuesto",
+    "modal": {
+      "title": "Vamos a configurarte",
+      "subtitle": "Seis preguntas rápidas para adaptar Fin a tus necesidades.",
+      "step_of": "Paso {current} de {total}",
+      "back": "Atrás",
+      "skip": "Omitir por ahora",
+      "next": "Siguiente",
+      "apply": "Aplicar sugerencias",
+      "generating": "Generando tu plan de inicio...",
+      "error": "No pudimos generar sugerencias en este momento. Puedes omitir y configurar manualmente.",
+      "step": {
+        "currency": {
+          "title": "¿Qué moneda usas principalmente?",
+          "description": "Mostraremos tus cálculos por defecto y las estadísticas de tu panel de control en esta moneda."
+        },
+        "income": {
+          "title": "¿Cuál es tu rango de ingresos mensuales?",
+          "description": "Esto ayuda a dimensionar tus presupuestos iniciales. Los detalles exactos permanecen privados.",
+          "under_500": "Menos de {currency} 500",
+          "500_1000": "{currency} 500 – 1.000",
+          "1000_3000": "{currency} 1.000 – 3.000",
+          "3000_5000": "{currency} 3.000 – 5.000",
+          "over_5000": "Más de {currency} 5.000"
+        },
+        "categories": {
+          "title": "Elige hasta 4 áreas de gasto",
+          "description": "Elige los campos en los que esperas gastar más. Pre-llenaremos los presupuestos correspondientes."
+        },
+        "savings": {
+          "title": "¿Cuánto deseas ahorrar cada mes?",
+          "none": "Por ahora no — solo rastrear gastos",
+          "5": "5% de los ingresos",
+          "10": "10% de los ingresos",
+          "20": "20% de los ingresos",
+          "custom": "Un porcentaje personalizado",
+          "custom_label": "% de Ahorro"
+        },
+        "style": {
+          "title": "¿Qué tipo de planificador de presupuesto eres?",
+          "strict": "Estricto — avisarme cuando esté cerca de los límites",
+          "flexible": "Flexible — pautas, no reglas estrictas"
+        },
+        "review": {
+          "title": "Aquí tienes tu plan inicial",
+          "description": "Edita cualquier límite mensual sugerido a continuación, luego haz clic en aplicar."
+        }
+      }
+    }
   },
   "ReceiptScanner": {
     "scanReceipt": "Escanear Recibo",
@@ -444,5 +506,47 @@
       "tip": "Consejo",
       "success": "Bien hecho"
     }
+  },
+  "Common": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "save_changes": "Guardar Cambios",
+    "saving": "Guardando..."
+  },
+  "Recurring": {
+    "title": "Gastos Recurrentes",
+    "description": "Automatiza tus gastos regulares con reglas recurrentes.",
+    "add_recurring": "Agregar Gasto Recurrente",
+    "edit_recurring": "Editar Gasto Recurrente",
+    "setup_recurring_expense": "Configura un gasto que se repite automáticamente.",
+    "update_recurring_details": "Actualiza los detalles del gasto recurrente.",
+    "create_rule": "Crear Regla",
+    "rule_created": "Regla recurrente creada",
+    "rule_updated": "Regla recurrente actualizada",
+    "rule_deleted": "Regla recurrente eliminada",
+    "rule_enabled": "Regla recurrente habilitada",
+    "rule_disabled": "Regla recurrente deshabilitada",
+    "expense_generated": "Gasto generado exitosamente",
+    "frequency": "Frecuencia",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "start_date": "Primera Fecha de Vencimiento",
+    "next_due": "Próximo Vencimiento",
+    "description_placeholder": "Ej. Alquiler mensual, suscripción Netflix",
+    "generate_first_expense_now": "Generar primer gasto ahora",
+    "generate_now": "Generar Ahora",
+    "no_recurring_rules": "Sin Gastos Recurrentes",
+    "no_recurring_rules_description": "Configura gastos recurrentes para rastrear automáticamente pagos regulares como alquiler, suscripciones y servicios.",
+    "delete_rule_title": "¿Eliminar Regla Recurrente?",
+    "delete_rule_description": "Esto eliminará permanentemente esta regla recurrente. Los gastos generados anteriormente no se verán afectados."
+  },
+  "NotFound": {
+    "title": "Página no encontrada",
+    "description": "Lo sentimos, no pudimos encontrar la página que buscas. Es posible que haya sido movida, renombrada o no exista.",
+    "goBack": "Volver al inicio",
+    "goToDashboard": "Ir al panel"
   }
 }

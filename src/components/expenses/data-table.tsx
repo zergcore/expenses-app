@@ -30,6 +30,8 @@ import type { Expense } from "@/actions/expenses";
 import type { CurrencyFilter, MultiCurrencyTotals } from "@/lib/currency-types";
 import { sumByEquivalent } from "@/lib/currency-calculator";
 import { formatCurrencyAmount, CURRENCY_CONFIG } from "@/lib/currency-types";
+import { ExpensesEmptyState } from "./expenses-empty-state";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -127,9 +129,14 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
           {CURRENCY_FILTERS.map((currency) => (
             <Button
               key={currency}
-              variant={currencyFilter === currency ? "default" : "outline"}
+              variant={currencyFilter === currency ? "default" : "secondary"}
               size="sm"
-              className="h-8 text-xs shrink-0 gap-1"
+              className={cn(
+                "h-8 text-xs shrink-0 gap-1 cursor-pointer",
+                currencyFilter === currency
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary/50 hover:bg-secondary border-0"
+              )}
               onClick={() => setCurrencyFilter(currency)}
             >
               {currency === "ALL" ? (
@@ -148,9 +155,14 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
         {rootCategories.length > 0 && (
           <div className="flex flex-wrap gap-1.5 overflow-x-auto pb-1">
             <Button
-              variant={selectedCategory === null ? "default" : "outline"}
+              variant={selectedCategory === null ? "default" : "secondary"}
               size="sm"
-              className="h-8 text-xs shrink-0"
+              className={cn(
+                "h-8 text-xs shrink-0 cursor-pointer",
+                selectedCategory === null
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary/50 hover:bg-secondary border-0"
+              )}
               onClick={() => handleCategoryFilter(null)}
             >
               {t("Expenses.all_categories")}
@@ -159,10 +171,15 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
               <Button
                 key={category.id}
                 variant={
-                  selectedCategory === category.id ? "default" : "outline"
+                  selectedCategory === category.id ? "default" : "secondary"
                 }
                 size="sm"
-                className="h-8 text-xs gap-1.5 shrink-0"
+                className={cn(
+                  "h-8 text-xs gap-1.5 shrink-0 cursor-pointer",
+                  selectedCategory === category.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary/50 hover:bg-secondary border-0"
+                )}
                 onClick={() => handleCategoryFilter(category.id)}
               >
                 <span>{category.icon}</span>
@@ -216,9 +233,17 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center"
+                  className="h-auto p-0"
                 >
-                  {t("Expenses.table.no_expenses_yet")}
+                  <ExpensesEmptyState
+                    variant={globalFilter || selectedCategory || currencyFilter !== "ALL" ? "no_filter_match" : "no_expenses"}
+                    onClearFilters={() => {
+                      setGlobalFilter("");
+                      setSelectedCategory(null);
+                      setColumnFilters([]);
+                      setCurrencyFilter("ALL");
+                    }}
+                  />
                 </TableCell>
               </TableRow>
             )}
@@ -231,21 +256,15 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
                 colSpan={columns.length - 2}
                 className="text-muted-foreground text-xs"
               >
-                {t("Expenses.table.spent_per_currency")}
+                {t("Expenses.table.spent_per_currency") || "Spent per currency"}
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex flex-col gap-0.5 text-xs">
-                  <span className="text-muted-foreground">
-                    {formatCurrencyAmount(originalSpending.ves, "VES")}
-                  </span>
-                  <span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-sm font-medium">
                     {formatCurrencyAmount(originalSpending.usd, "USD")}
                   </span>
-                  <span className="text-muted-foreground">
-                    {formatCurrencyAmount(originalSpending.usdt, "USDT")}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {formatCurrencyAmount(originalSpending.eur, "EUR")}
+                  <span className="text-[10px] text-muted-foreground leading-none mt-0.5">
+                    {formatCurrencyAmount(originalSpending.ves, "VES")} · {formatCurrencyAmount(originalSpending.usdt, "USDT")} · {formatCurrencyAmount(originalSpending.eur, "EUR")}
                   </span>
                 </div>
               </TableCell>
@@ -254,21 +273,15 @@ export function DataTable<TData, TValue>(props: DataTableProps<TData, TValue>) {
             {/* Row 2: Total equivalents in all currencies */}
             <TableRow>
               <TableCell colSpan={columns.length - 2} className="font-semibold">
-                {t("Expenses.table.total_equivalent")}
+                {t("Expenses.table.total_equivalent") || "Total Equivalent"}
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex flex-col gap-0.5 text-sm font-bold">
-                  <span className="text-muted-foreground text-xs">
-                    {formatCurrencyAmount(multiCurrencyTotals.ves, "VES")}
-                  </span>
-                  <span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-base font-bold text-foreground">
                     {formatCurrencyAmount(multiCurrencyTotals.usd, "USD")}
                   </span>
-                  <span className="text-muted-foreground text-xs">
-                    {formatCurrencyAmount(multiCurrencyTotals.usdt, "USDT")}
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {formatCurrencyAmount(multiCurrencyTotals.eur, "EUR")}
+                  <span className="text-xs text-muted-foreground leading-none mt-0.5">
+                    {formatCurrencyAmount(multiCurrencyTotals.ves, "VES")} · {formatCurrencyAmount(multiCurrencyTotals.usdt, "USDT")} · {formatCurrencyAmount(multiCurrencyTotals.eur, "EUR")}
                   </span>
                 </div>
               </TableCell>

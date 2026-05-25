@@ -2,12 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { google } from "@ai-sdk/google";
-import { generateObject } from "ai";
+import { generateText, Output } from "ai";
 import { revalidatePath } from "next/cache";
 import {
   receiptExtractionSchema,
   type ReceiptExtraction,
 } from "@/lib/schemas/receipt";
+import { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 
 // --- Types ---
 
@@ -24,7 +26,18 @@ export type CreateReceiptFromScanResult = {
   error?: string;
 };
 
-// --- Helper: Build VLM Prompt ---
+// --- Helpers ---
+
+/**
+ * Ensures the user is authenticated. Throws an error to be caught by the action.
+ */
+async function requireAuth(supabase: SupabaseClient<Database>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+  return user;
+}
 
 function buildExtractionPrompt(): string {
   return `You are an expert receipt parser. Analyze this receipt image and extract the following information:
@@ -56,15 +69,16 @@ Important guidelines:
 export async function scanReceipt(
   imagePath: string,
 ): Promise<ScanReceiptResult> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  // Get authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Unauthorized" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unauthorized",
+    };
   }
 
   try {
@@ -84,7 +98,7 @@ export async function scanReceipt(
       return { success: false, error: "Failed to create receipt record" };
     }
 
-    // Get a signed URL for the image (works with private buckets)
+    // Get a signed URL for the image
     const { data: signedUrlData, error: urlError } = await supabase.storage
       .from("receipts")
       .createSignedUrl(imagePath, 60 * 5); // 5 minute expiry
@@ -99,9 +113,9 @@ export async function scanReceipt(
     }
 
     // Call Gemini VLM to extract receipt data
-    const { object: extractedData } = await generateObject({
+    const { output: extractedData } = await generateText({
       model: google("gemini-2.5-flash"),
-      schema: receiptExtractionSchema,
+      output: Output.object({ schema: receiptExtractionSchema }),
       messages: [
         {
           role: "user",
@@ -113,13 +127,11 @@ export async function scanReceipt(
       ],
     });
 
-    console.log("Extracted data:", extractedData);
-
-    // Update receipt with extracted data
+    // Update receipt with safely stringified extracted data
     const { error: updateError } = await supabase
       .from("receipts")
       .update({
-        extracted_data: extractedData,
+        extracted_data: JSON.parse(JSON.stringify(extractedData)),
         confidence: extractedData.confidence,
         status: "processed",
       })
@@ -158,14 +170,16 @@ export async function createExpenseFromReceipt(
     date?: string;
   },
 ): Promise<CreateReceiptFromScanResult> {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { success: false, error: "Unauthorized" };
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : "Unauthorized",
+    };
   }
 
   // Fetch the receipt with extracted data
@@ -184,19 +198,37 @@ export async function createExpenseFromReceipt(
     return { success: false, error: "Receipt has not been processed" };
   }
 
-  const extracted = receipt.extracted_data as ReceiptExtraction;
+  // Coerce JSONB back into our specific type
+  const extracted = receipt.extracted_data as unknown as ReceiptExtraction;
 
-  // Create expense from extracted data with optional overrides
+  // Resolve final values (overrides take precedence over AI extracted data)
+  const amount = overrides?.amount ?? extracted.totalAmount;
+  const currency = (overrides?.currency ?? extracted.currency) as
+    | "USD"
+    | "VES"
+    | "USDT"
+    | "EUR";
+
+  // 🚨 BUG FIX: Fetch current rates and calculate equivalents dynamically
+  const { getCurrentRatesSnapshot } = await import("@/actions/rates");
+  const { calculateEquivalents } = await import("@/lib/currency-calculator");
+
+  const rates = await getCurrentRatesSnapshot();
+  const equivalents = calculateEquivalents(amount, currency, rates);
+
+  // Create expense from extracted data with optional overrides + currency equivalents
   const { data: expense, error: insertError } = await supabase
     .from("expenses")
     .insert({
       user_id: user.id,
       receipt_id: receiptId,
-      amount: overrides?.amount ?? extracted.totalAmount,
-      currency: overrides?.currency ?? extracted.currency,
+      amount: amount,
+      currency: currency,
       description: overrides?.description ?? extracted.merchantName,
       date: overrides?.date ?? extracted.transactionDate,
       category_id: overrides?.category_id ?? null,
+      equivalents: JSON.parse(JSON.stringify(equivalents)),
+      rates_at_creation: JSON.parse(JSON.stringify(rates)),
     })
     .select("id")
     .single();
@@ -217,13 +249,12 @@ export async function createExpenseFromReceipt(
  * Gets a receipt by ID for the current user.
  */
 export async function getReceipt(receiptId: string) {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch {
     return null;
   }
 
@@ -246,13 +277,12 @@ export async function getReceipt(receiptId: string) {
  * Gets all receipts for the current user.
  */
 export async function getReceipts(limit: number = 20) {
-  const supabase = await createClient();
+  const supabase = await createClient<Database>();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
+  let user;
+  try {
+    user = await requireAuth(supabase);
+  } catch {
     return [];
   }
 
@@ -268,22 +298,15 @@ export async function getReceipts(limit: number = 20) {
     return [];
   }
 
-  return data;
+  return data || [];
 }
 
 /**
  * Deletes a receipt and its associated image from storage.
  */
 export async function deleteReceipt(receiptId: string) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("Unauthorized");
-  }
+  const supabase = await createClient<Database>();
+  const user = await requireAuth(supabase);
 
   // Fetch receipt to get image path
   const { data: receipt } = await supabase
@@ -318,4 +341,5 @@ export async function deleteReceipt(receiptId: string) {
   }
 
   revalidatePath("/expenses");
+  revalidatePath("/receipts");
 }

@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/server";
 
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { OnboardingModal } from "@/components/onboarding/onboarding-modal";
 
 export default async function DashboardLayout({
   children,
@@ -9,6 +10,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
+  const showOnboarding = user.user_metadata?.onboarding_complete !== true;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -22,6 +24,8 @@ export default async function DashboardLayout({
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
+
+      {showOnboarding && <OnboardingModal />}
     </div>
   );
 }
