@@ -74,11 +74,11 @@ export const KPIHeader = () => {
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {/* 1. Budget Summary (Unique Layout) */}
-      <Card className="relative overflow-hidden bg-linear-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
+      <Card className="relative bg-linear-to-br from-card to-card/80 border-border/50 hover:border-primary/30 transition-colors">
         <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-primary/60 via-primary to-primary/60" />
         <CardContent className="p-5">
           <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 flex-shrink-0">
+            <div className="relative w-16 h-16 shrink-0">
               {/* Optimization: Removed ResponsiveContainer for fixed dimensions */}
               <PieChart width={64} height={64}>
                 <Pie
@@ -130,7 +130,7 @@ export const KPIHeader = () => {
             </div>
             <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-primary/80 to-primary rounded-full transition-all"
+                className="h-full bg-linear-to-r from-primary/80 to-primary rounded-full transition-all"
                 style={{ width: `${(daysElapsed / daysInMonth) * 100}%` }}
               />
             </div>

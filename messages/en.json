@@ -84,7 +84,11 @@
     "signIn": "Sign in",
     "resetSent": "If this email is registered, you'll receive a reset link shortly.",
     "resendIn": "Resend in {seconds}s",
-    "resetSubmitting": "Sending…"
+    "resetSubmit": "Send reset link",
+    "resetSubmitting": "Sending...",
+    "secured": "Your account has been secured. All active sessions have been terminated. Please log in again.",
+    "invalidToken": "The security link is invalid or has expired.",
+    "terminationFailed": "Failed to secure account. Please contact support."
   },
   "Profile": {
     "title": "Profile",
@@ -296,11 +300,19 @@
     "categories": "Categories",
     "rates": "Rates",
     "settings": "Settings",
+    "calculator": "Calculator",
     "light": "Light",
     "dark": "Dark",
-    "system": "System"
+    "system": "System",
+    "support": "Support"
   },
   "Landing": {
+    "exportRates": "Export Rates",
+    "session_banner": {
+      "welcome": "Welcome back!",
+      "message": "You are logged in as {email}.",
+      "button": "Access Dashboard"
+    },
     "title": "Smart Financial Planning",
     "subtitle": "Master Your Finances",
     "description": "Coordinate your finances by tracking both your expenses and real-time exchange rates. Make informed decisions by understanding how currency fluctuations affect your budget.",
@@ -392,7 +404,55 @@
     "complete": "🎉 Setup Complete!",
     "empty_expense_cta": "Record my first expense",
     "empty_budget_cta": "Set a monthly limit to save more this month",
-    "create_budget": "Create Budget"
+    "create_budget": "Create Budget",
+    "modal": {
+      "title": "Let's set you up",
+      "subtitle": "Six quick questions to tailor Fin to your needs.",
+      "step_of": "Step {current} of {total}",
+      "back": "Back",
+      "skip": "Skip for now",
+      "next": "Next",
+      "apply": "Apply suggestions",
+      "generating": "Generating your starter plan...",
+      "error": "We couldn't generate suggestions right now. You can skip and set things up manually.",
+      "step": {
+        "currency": {
+          "title": "Which currency do you mainly use?",
+          "description": "We'll display your default calculations and dashboard stats in this currency."
+        },
+        "income": {
+          "title": "What's your monthly income range?",
+          "description": "This helps size your starter budgets. Exact details remain private.",
+          "under_500": "Under {currency} 500",
+          "500_1000": "{currency} 500 – 1,000",
+          "1000_3000": "{currency} 1,000 – 3,000",
+          "3000_5000": "{currency} 3,000 – 5,000",
+          "over_5000": "Over {currency} 5,000"
+        },
+        "categories": {
+          "title": "Pick up to 4 spending areas",
+          "description": "Choose the fields you expect to spend on most. We'll pre-fill budgets for them."
+        },
+        "savings": {
+          "title": "How much do you want to save each month?",
+          "none": "Not yet — just track spending",
+          "5": "5% of income",
+          "10": "10% of income",
+          "20": "20% of income",
+          "custom": "A custom percentage",
+          "custom_label": "Savings %"
+        },
+        "style": {
+          "title": "What kind of budgeter are you?",
+          "strict": "Strict — alert me when I'm close to limits",
+          "flexible": "Flexible — guidelines, not hard rules"
+        },
+        "review": {
+          "title": "Here is your starter plan",
+          "description": "Edit any suggested monthly limit below, then click apply."
+        }
+      }
+    }
   },
   "ReceiptScanner": {
     "scanReceipt": "Scan Receipt",
@@ -443,7 +503,8 @@
     "edit": "Edit",
     "delete": "Delete",
     "cancel": "Cancel",
-    "save_changes": "Save Changes"
+    "save_changes": "Save Changes",
+    "saving": "Saving..."
   },
   "Recurring": {
     "title": "Recurring Expenses",
@@ -473,5 +534,11 @@
     "no_recurring_rules_description": "Set up recurring expenses to automatically track regular payments like rent, subscriptions, and utilities.",
     "delete_rule_title": "Delete Recurring Rule?",
     "delete_rule_description": "This will permanently delete this recurring rule. Past generated expenses will not be affected."
+  },
+  "NotFound": {
+    "title": "Page Not Found",
+    "description": "Sorry, we couldn't find the page you're looking for. It might have been moved, renamed, or doesn't exist.",
+    "goBack": "Go Back Home",
+    "goToDashboard": "Go to Dashboard"
   }
 }

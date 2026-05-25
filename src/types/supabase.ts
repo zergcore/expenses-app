@@ -14,6 +14,106 @@ export type Database = {
   };
   public: {
     Tables: {
+      login_events: {
+        Row: {
+          id: string;
+          user_id: string;
+          event_type: "sign_in" | "failed_attempt" | "password_change" | "security_action";
+          ip_address: string | null;
+          country_code: string | null;
+          user_agent: string | null;
+          is_suspicious: boolean;
+          reason: string | null;
+          metadata: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          event_type: "sign_in" | "failed_attempt" | "password_change" | "security_action";
+          ip_address?: string | null;
+          country_code?: string | null;
+          user_agent?: string | null;
+          is_suspicious?: boolean;
+          reason?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          event_type?: "sign_in" | "failed_attempt" | "password_change" | "security_action";
+          ip_address?: string | null;
+          country_code?: string | null;
+          user_agent?: string | null;
+          is_suspicious?: boolean;
+          reason?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "login_events_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      support_tickets: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          name: string;
+          email: string;
+          subject: string;
+          message: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          status: "open" | "in_progress" | "resolved" | "spam";
+          locale: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          name: string;
+          email: string;
+          subject: string;
+          message: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          status?: "open" | "in_progress" | "resolved" | "spam";
+          locale?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          name?: string;
+          email?: string;
+          subject?: string;
+          message?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          status?: "open" | "in_progress" | "resolved" | "spam";
+          locale?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       budgets: {
         Row: {
           amount: number;

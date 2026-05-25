@@ -42,12 +42,10 @@ export const ChartCard = () => {
         ];
   }, [isOverBudget, totalBudget, overBudget, budgetSpent, remaining, t]);
 
-  // FIX IS HERE:
-  // We use `viewBox?: any` to accept both Polar and Cartesian boxes from Recharts types.
-  // The `if` check inside ensures we only run logic if cx/cy actually exist.
+  // We type viewBox to safely accept coordinates from Recharts.
   const renderLabel = useCallback(
-    ({ viewBox }: { viewBox?: any }) => {
-      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+    ({ viewBox }: { viewBox?: { cx?: number; cy?: number; x?: number; y?: number; width?: number; height?: number } }) => {
+      if (viewBox && typeof viewBox.cx === "number" && typeof viewBox.cy === "number") {
         return (
           <text
             x={viewBox.cx}
@@ -66,7 +64,7 @@ export const ChartCard = () => {
             </tspan>
             <tspan
               x={viewBox.cx}
-              y={(viewBox.cy || 0) + 20}
+              y={viewBox.cy + 20}
               className="fill-muted-foreground text-xs sm:text-sm"
             >
               {t("Expenses.of_budget")}

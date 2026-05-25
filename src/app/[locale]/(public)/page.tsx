@@ -33,12 +33,12 @@ export default async function LandingPage() {
       <Header user={user} />
 
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection user={user} />
 
       {/* Calculator & Chart Section */}
       <section className="container mx-auto px-4 py-2 sm:py-6">
         <div className="grid md:grid-cols-2 gap-4 sm:gap-8 max-w-4xl mx-auto">
-          <CurrencyCalculator rates={calculatorRates} />
+          <CurrencyCalculator rates={calculatorRates} allRates={rates} />
           <RateComparisonChart usdRate={usdRate} usdtRate={usdtRate} />
         </div>
       </section>

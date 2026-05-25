@@ -1,0 +1,9 @@
+/* TEAM */
+Developer: Zaidibeth Ramos
+
+/* SITE */
+Last update: 2026/05/25
+Standards: HTML5, CSS3, ES Next
+Components: React 19, Next.js 16, TailwindCSS v4, Radix UI, Lucide Icons, Recharts, Dinero.js
+Backend: Supabase (Auth, Postgres DB, RLS, Edge Functions)
+Software: Cursor / Gemini / Claude / Antigravity IDE

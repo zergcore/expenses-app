@@ -6,6 +6,7 @@ import {
   TrendingUp,
   Settings,
   RefreshCw,
+  Calculator,
 } from "lucide-react";
 
 export const navigation = [
@@ -15,5 +16,6 @@ export const navigation = [
   { key: "budgets", href: "/budgets", icon: Wallet },
   { key: "categories", href: "/categories", icon: Tags },
   { key: "rates", href: "/rates", icon: TrendingUp },
+  { key: "calculator", href: "/dashboard/calculator", icon: Calculator },
   { key: "settings", href: "/settings", icon: Settings },
 ];

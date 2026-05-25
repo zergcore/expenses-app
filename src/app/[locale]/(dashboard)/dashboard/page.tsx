@@ -39,7 +39,7 @@ export default async function DashboardPage() {
   const hasBudgets = budgets.length > 0;
 
   const usdRate = rates.find((r) => r.pair === "USD / VED");
-  const usdtRate = rates.find((r) => r.pair === "USDT / USD");
+  const usdtRate = rates.find((r) => r.pair === "USDT / VED");
 
   // Calculate Budget Usage
   const totalBudget = budgets.reduce((acc, b) => acc + b.amount, 0);

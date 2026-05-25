@@ -57,7 +57,7 @@ export function Header({ user }: HeaderProps) {
             <Sidebar />
           </SheetContent>
         </Sheet>
-        <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Isotipo width={40} height={40} />
         </Link>
       </div>

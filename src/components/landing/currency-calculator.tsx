@@ -21,6 +21,8 @@ import { Copy, Check, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
 import { copyToClipboard } from "@/lib/clipboard";
+import { ShareRatesButton } from "@/components/rates/share-rates-button";
+import type { RateData } from "@/actions/rates";
 
 interface CurrencyCalculatorProps {
   rates: {
@@ -28,11 +30,12 @@ interface CurrencyCalculatorProps {
     usdtToBs: number;
     eurToBs: number;
   };
+  allRates?: RateData[];
 }
 
 type CurrencyPair = "USD" | "USDT" | "EUR";
 
-export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
+export function CurrencyCalculator({ rates, allRates }: CurrencyCalculatorProps) {
   const t = useTranslations();
   const [fromAmount, setFromAmount] = useState<string>("1");
   const [toAmount, setToAmount] = useState<string>("");
@@ -53,13 +56,21 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
     }
   };
 
-  function computeTo(from: string, rate: number, dir: "toBs" | "fromBs"): string {
+  function computeTo(
+    from: string,
+    rate: number,
+    dir: "toBs" | "fromBs",
+  ): string {
     const n = parseFloat(from) || 0;
     if (dir === "toBs") return (n * rate).toFixed(2);
     return rate > 0 ? (n / rate).toFixed(2) : "0.00";
   }
 
-  function computeFrom(to: string, rate: number, dir: "toBs" | "fromBs"): string {
+  function computeFrom(
+    to: string,
+    rate: number,
+    dir: "toBs" | "fromBs",
+  ): string {
     const n = parseFloat(to) || 0;
     if (dir === "toBs") return rate > 0 ? (n / rate).toFixed(2) : "0.00";
     return (n * rate).toFixed(2);
@@ -104,10 +115,13 @@ export function CurrencyCalculator({ rates }: CurrencyCalculatorProps) {
   return (
     <Card className="w-full">
       <CardContent className="p-4 sm:p-6">
-        {/* Title */}
-        <h3 className="text-base sm:text-xl font-bold text-center mb-4">
-          {t("Landing.calculator")}
-        </h3>
+        {/* Title Header */}
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h3 className="text-base sm:text-lg md:text-xl font-bold">
+            {t("Landing.calculator")}
+          </h3>
+          {allRates && <ShareRatesButton rates={allRates} />}
+        </div>
 
         {/* Conversion container */}
         <div className="bg-muted/50 rounded-lg p-3 sm:p-4">

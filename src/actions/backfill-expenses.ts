@@ -3,6 +3,7 @@
 import { createServiceClient } from "@/lib/supabase/server";
 import type { RatesSnapshot } from "@/actions/rates";
 import type { Currency, CurrencyEquivalents } from "@/lib/currency-types";
+import type { Json } from "@/types/supabase";
 
 /**
  * Backfill existing expenses with equivalents and rates_at_creation.
@@ -59,12 +60,11 @@ export async function backfillExpenseRates(forceAll: boolean = false): Promise<{
           `rates: usd=${rates.usd_ves.toFixed(2)}, usdt=${rates.usdt_ves.toFixed(2)}, eur=${rates.eur_ves.toFixed(2)}`,
       );
 
-      // Update the expense
       const { error: updateError } = await supabase
         .from("expenses")
         .update({
-          equivalents,
-          rates_at_creation: rates,
+          equivalents: equivalents as unknown as Json,
+          rates_at_creation: rates as unknown as Json,
         })
         .eq("id", expense.id);
 
@@ -112,7 +112,7 @@ async function getRatesForDate(date: string): Promise<RatesSnapshot> {
   data?.forEach((row) => {
     if (!seen.has(row.pair)) {
       seen.add(row.pair);
-      const rate = parseFloat(row.rate);
+      const rate = row.rate;
       if (row.pair === "USD_VES") rates.usd_ves = rate;
       if (row.pair === "USDT_VES") rates.usdt_ves = rate;
       if (row.pair === "EUR_VES") rates.eur_ves = rate;
@@ -138,7 +138,7 @@ async function getRatesForDate(date: string): Promise<RatesSnapshot> {
     futureData?.forEach((row) => {
       if (!seen.has(row.pair)) {
         seen.add(row.pair);
-        const rate = parseFloat(row.rate);
+        const rate = row.rate;
         if (row.pair === "USD_VES") rates.usd_ves = rate;
         if (row.pair === "USDT_VES") rates.usdt_ves = rate;
         if (row.pair === "EUR_VES") rates.eur_ves = rate;

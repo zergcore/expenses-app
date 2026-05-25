@@ -24,7 +24,7 @@ export function Sidebar({ className }: SidebarProps) {
     >
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-border px-6">
-        <Link href="/dashboard" className="flex items-center hover:opacity-80 transition-opacity">
+        <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
           <Isotipo width={100} height={100} />
         </Link>
       </div>

@@ -61,7 +61,7 @@ const handleI18n = createMiddleware({
   localeDetection: false,
 });
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Skip locale detection if pathname already has a locale
@@ -91,7 +91,7 @@ export async function middleware(request: NextRequest) {
       maxAge: 60 * 60 * 24 * 365, // 1 year
       path: "/",
       // httpOnly intentionally false — needed by client-side LocaleSwitcher to read current locale
-      secure: process.env.NODE_ENV === "production",
+      secure: true,
       sameSite: "lax",
     });
 

@@ -212,14 +212,14 @@ otp_expiry = 3600
 
 # Production SMTP is configured via the Supabase dashboard (Settings → Auth → SMTP),
 # not here — keeping this commented out preserves local Inbucket email capture.
-# [auth.email.smtp]
-# enabled = true
-# host = "smtp.resend.com"
-# port = 465
-# user = "resend"
-# pass = "env(RESEND_API_KEY)"
-# admin_email = "fin@zergcore.dev"
-# sender_name = "Fin"
+[auth.email.smtp]
+enabled = true
+host = "smtp.resend.com"
+port = 465
+user = "resend"
+pass = "env(RESEND_API_KEY)"
+admin_email = "fin@zergcore.dev"
+sender_name = "Fin"
 
 [auth.email.template.confirmation]
 subject = "Confirm your Fin account"

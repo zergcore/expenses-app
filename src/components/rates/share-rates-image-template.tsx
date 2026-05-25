@@ -21,7 +21,7 @@ const PAIR_LABELS: Record<SharePair, { name: string; source: string; color: stri
 };
 
 const RATE_PAIR_MAP: Record<SharePair, string> = {
-  USDT_VES: "USDT / USD",
+  USDT_VES: "USDT / VED",
   USD_VES: "USD / VED",
   EUR_VES: "EUR / VED",
 };

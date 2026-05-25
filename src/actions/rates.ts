@@ -613,7 +613,7 @@ export async function getDailyRateHistory(
       });
     }
     const point = pointMap.get(ts)!;
-    const rate = row.rate;
+    const rate = typeof row.rate === 'string' ? parseFloat(row.rate) : row.rate;
     if (row.pair === "USDT_VES" || row.pair === "USDT / VED") point.usdt = rate;
     else if (row.pair === "USD_VES") point.usd = rate;
     else if (row.pair === "EUR_VES") point.eur = rate;
