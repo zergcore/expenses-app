@@ -20,7 +20,7 @@ export const RateCardsSection = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto">
         {rates
           .filter((r) =>
-            ["USDT / USD", "USD / VED", "EUR / VED"].includes(r.pair),
+            ["USDT / VED", "USD / VED", "EUR / VED"].includes(r.pair),
           )
           .map((rate, index) => (
             <div
