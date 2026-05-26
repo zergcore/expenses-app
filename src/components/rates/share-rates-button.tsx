@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -64,7 +65,15 @@ export function ShareRatesButton({ rates }: ShareRatesButtonProps) {
         cacheBust: true,
       });
 
-      const blob = await (await fetch(dataUrl)).blob();
+      // Convert base64 data URL to blob directly (avoids CSP connect-src blocking data: URIs)
+      const base64 = dataUrl.split(",")[1];
+      const byteString = atob(base64);
+      const arrayBuffer = new ArrayBuffer(byteString.length);
+      const uint8Array = new Uint8Array(arrayBuffer);
+      for (let i = 0; i < byteString.length; i++) {
+        uint8Array[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([uint8Array], { type: "image/png" });
       const fileName = `rates-${format(new Date(), "yyyy-MM-dd")}.png`;
       const file = new File([blob], fileName, { type: "image/png" });
 
@@ -108,6 +117,9 @@ export function ShareRatesButton({ rates }: ShareRatesButtonProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{t("share_dialog_title")}</DialogTitle>
+            <DialogDescription className="sr-only">
+              {t("share_dialog_title")}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 py-2">

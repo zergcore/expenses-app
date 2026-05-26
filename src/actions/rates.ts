@@ -5,6 +5,8 @@ import { cache } from "react";
 import { z } from "zod";
 import type { Database } from "../types/supabase";
 
+const isDev = process.env.NODE_ENV === "development";
+
 export interface RateData {
   pair: string;
   rate: string;
@@ -180,6 +182,13 @@ async function fetchBCVRates(): Promise<BCVRatesResult | null> {
 
     const eurPrice =
       eurUsdRate && usdPrice > 0 ? eurUsdRate * usdPrice : undefined;
+    console.warn(
+      "[rates] dolarvzla.com unavailable — using dolarapi.com fallback (USD:",
+      usdPrice,
+      ", EUR:",
+      eurPrice,
+      ")",
+    );
     return { usd: usdPrice, eur: eurPrice, dolarvzlaFailed: true };
   } catch (e) {
     console.error("BCV Fetch Error:", e);
@@ -211,6 +220,7 @@ async function fetchCryptoRates(): Promise<z.infer<
 
 async function updateRateInDB(pair: string, source: string, rate: number) {
   if (rate <= 0) return;
+  if (isDev) return; // Never write to the database from the dev server
 
   try {
     const serviceClient = createServiceClient<Database>();
